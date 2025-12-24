@@ -1,6 +1,8 @@
 # DAPR Plugin for Claude Code v2.4
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/Sahib-Sawhney-WH/dapr-claude-plugin/releases/tag/v2.4.0)
+[![GitHub stars](https://img.shields.io/github/stars/Sahib-Sawhney-WH/dapr-claude-plugin?style=social)](https://github.com/Sahib-Sawhney-WH/dapr-claude-plugin)
 
 A comprehensive Claude Code plugin for developing, deploying, and debugging DAPR (Distributed Application Runtime) applications with Python across Azure, AWS, and GCP.
 
