@@ -1,0 +1,31 @@
+# DAPR Agents Framework
+dapr-agents>=0.1.0
+
+# DAPR SDK
+dapr>=1.13.0
+dapr-ext-workflow>=0.1.0
+dapr-ext-fastapi>=0.1.0
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn>=0.27.0
+
+# Data Validation
+pydantic>=2.5.0
+
+# LLM Clients (choose based on your provider)
+openai>=1.10.0
+# anthropic>=0.18.0
+# ollama>=0.1.0
+
+# Async HTTP Client
+httpx>=0.26.0
+aiohttp>=3.9.0
+
+# Observability
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+opentelemetry-instrumentation-fastapi>=0.43b0
+
+# Utilities
+python-dotenv>=1.0.0

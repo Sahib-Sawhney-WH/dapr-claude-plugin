@@ -66,6 +66,61 @@
             "prompt": "A Dockerfile was modified at $FILE. For DAPR compatibility, verify: EXPOSE statement includes the app port, health endpoint is reachable, no DAPR sidecar is included in the container (DAPR runs as sidecar, not in-container), non-root user is configured if possible. Report any issues found."
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/*_agent.py",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate DAPR Agent configuration",
+            "prompt": "An agent file was just modified at $FILE. Validate the DAPR Agent configuration: (1) Agent has required fields (name, role, instructions), (2) All tools have @tool decorator and docstrings for LLM understanding, (3) API keys are loaded from environment variables (not hardcoded), (4) Async is used for I/O-bound tools, (5) Complex inputs use Pydantic models with Field descriptions. Report any issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/*agent*.py",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate DAPR Agent patterns",
+            "prompt": "An agent-related file was modified at $FILE. If this contains DAPR Agents code, validate: (1) AssistantAgent/DurableAgent is properly imported from dapr_agents, (2) Tools are properly decorated with @tool, (3) For workflow-backed agents, activities are idempotent and workflows handle failures, (4) Memory configuration is appropriate for the use case. Report any issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/tools/*.py",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate agent tool definitions",
+            "prompt": "A tool file was modified at $FILE. Validate the tool definitions: (1) Each tool has @tool decorator, (2) Clear docstring describing when LLM should use the tool, (3) Input validation using Pydantic for complex parameters, (4) Proper async/await for network or I/O operations, (5) Error handling returns informative messages rather than raising exceptions. Report any issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/patterns/*.py",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate agentic pattern implementation",
+            "prompt": "An agentic pattern file was modified at $FILE. Validate the pattern implementation: (1) Workflow activities are properly decorated with @activity, (2) Workflows are decorated with @workflow, (3) Activities are idempotent (safe to retry), (4) External events are properly awaited for human-in-the-loop patterns, (5) Parallel execution uses when_all correctly. Report any issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/integrations/*.py",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate agent integration code",
+            "prompt": "An integration file was modified at $FILE. Validate the integration: (1) External framework imports are correct (crewai, openai, etc.), (2) DAPR client is properly used with async context manager, (3) Session/state management uses DAPR state store, (4) Events are published via DAPR pub/sub, (5) Error handling is comprehensive. Report any issues found."
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -77,6 +132,17 @@
             "type": "prompt",
             "description": "Pre-deployment validation",
             "prompt": "A DAPR deployment command is about to be executed. Before proceeding, verify: all component YAML files are valid, no plain-text secrets in configurations, resiliency policies are defined for production. If any issues are found, suggest using /dapr:security before deployment."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "command_pattern": "pip install.*dapr-agents|uv add.*dapr-agents",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "DAPR Agents setup guidance",
+            "prompt": "dapr-agents is being installed. After installation, remind the user to: (1) Set OPENAI_API_KEY or configure Azure OpenAI credentials, (2) Use /dapr:agent command to create agent templates, (3) Review agent-builder skill for best practices. Offer to create an initial agent scaffold."
           }
         ]
       }

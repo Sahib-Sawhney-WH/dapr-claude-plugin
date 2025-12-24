@@ -1,8 +1,18 @@
-# DAPR Plugin for Claude Code v2.0
+# DAPR Plugin for Claude Code v2.1
 
 A comprehensive Claude Code plugin for developing, deploying, and debugging DAPR (Distributed Application Runtime) applications with Python.
 
-## What's New in v2.0
+## What's New in v2.1
+
+- **DAPR Agents AI Framework** - Build intelligent, durable AI agents
+- **Agentic Patterns** - Prompt chaining, parallelization, routing, evaluator-optimizer, human-in-the-loop
+- **Multi-Agent Orchestration** - Workflow-based agent coordination
+- **Tool Templates** - HTTP, state, pub/sub, MCP integration tools
+- **CrewAI Integration** - Run CrewAI crews as durable DAPR workflows
+- **OpenAI Agents Integration** - Session management with DAPR state persistence
+- **Agent-Builder Skill** - Auto-validates agent configurations
+
+## v2.0 Features (Still Available)
 
 - **Complete Building Block Coverage** - All 12 DAPR building blocks supported
 - **Testing Support** - Mocked DAPR clients, pytest fixtures, integration tests
@@ -13,6 +23,27 @@ A comprehensive Claude Code plugin for developing, deploying, and debugging DAPR
 - **Example Projects** - E-commerce saga, IoT processing, saga patterns
 
 ## Features
+
+### DAPR Agents AI Framework
+
+Build intelligent agents with the DAPR Agents framework:
+
+| Agent Type | Description | Template |
+|------------|-------------|----------|
+| AssistantAgent | Interactive LLM-powered agents | `assistant_agent.py` |
+| DurableAgent | Workflow-backed fault-tolerant agents | `durable_agent.py` |
+| AgentService | Headless REST API agents | `agent_service.py` |
+| Multi-Agent | Orchestrated agent systems | `multi_agent_workflow.py` |
+
+### Agentic Patterns
+
+| Pattern | Description | Use Case |
+|---------|-------------|----------|
+| Prompt Chaining | Sequential LLM calls | Document analysis pipelines |
+| Parallelization | Concurrent task execution | Multi-document processing |
+| Routing | Dynamic agent selection | Support ticket routing |
+| Evaluator-Optimizer | Iterative refinement | Content quality improvement |
+| Human-in-the-Loop | External approval gates | Sensitive action workflows |
 
 ### All 12 DAPR Building Blocks
 
@@ -25,11 +56,11 @@ A comprehensive Claude Code plugin for developing, deploying, and debugging DAPR
 | Secrets | Secure credential storage | `secretstore.yaml` |
 | Actors | Virtual actor pattern | `statestore.yaml` (with actors) |
 | Workflows | Durable orchestration | Built-in |
-| **Configuration** | Dynamic app configuration | `configuration.yaml` |
-| **Distributed Lock** | Mutex across services | `lock.yaml` |
-| **Cryptography** | Encrypt/decrypt operations | `crypto.yaml` |
-| **Jobs** | Scheduled task execution | `job.yaml` |
-| **Conversation** | LLM/AI integration | `conversation.yaml` |
+| Configuration | Dynamic app configuration | `configuration.yaml` |
+| Distributed Lock | Mutex across services | `lock.yaml` |
+| Cryptography | Encrypt/decrypt operations | `crypto.yaml` |
+| Jobs | Scheduled task execution | `job.yaml` |
+| Conversation | LLM/AI integration | `conversation.yaml` |
 
 ### Azure Integration
 
@@ -39,6 +70,7 @@ A comprehensive Claude Code plugin for developing, deploying, and debugging DAPR
 - Azure Service Bus for messaging
 - Azure Key Vault for secrets and cryptography
 - Azure App Configuration for dynamic config
+- Azure OpenAI for LLM agents
 - Managed Identity authentication
 
 ## Installation
@@ -66,6 +98,7 @@ claude --plugin-dir /path/to/dapr-plugin
 | `/dapr:security` | Scan for security issues |
 | `/dapr:cicd` | Generate CI/CD pipelines |
 | `/dapr:project` | Initialize multi-service projects |
+| `/dapr:agent` | **NEW** Create DAPR AI agents |
 
 ## Agents
 
@@ -80,6 +113,7 @@ Specialized AI agents automatically invoked when relevant:
 | `workflow-expert` | Creating durable workflows and sagas |
 | `config-specialist` | Configuring DAPR components |
 | `multi-service-expert` | Cross-service debugging, service mesh |
+| `ai-agent-expert` | **NEW** Building AI agents with DAPR Agents framework |
 
 ## Skills
 
@@ -92,6 +126,7 @@ Auto-triggered skills for specific tasks:
 | `dapr-troubleshooting` | Diagnoses errors in logs |
 | `security-scanner` | Detects secrets and security issues |
 | `observability-setup` | Configures OpenTelemetry and monitoring |
+| `agent-builder` | **NEW** Validates AI agent configurations |
 
 ## Quick Start
 
@@ -108,17 +143,24 @@ Creates a FastAPI microservice with:
 - Docker configuration
 - Component YAML files
 
-### 2. Run Locally
+### 2. Create an AI Agent
+
+```
+/dapr:agent assistant my-agent
+```
+
+Options:
+```
+/dapr:agent assistant <name>     # Basic interactive agent
+/dapr:agent durable <name>       # Workflow-backed durable agent
+/dapr:agent service <name>       # Headless REST API agent
+/dapr:agent multi <name>         # Multi-agent orchestration
+```
+
+### 3. Run Locally
 
 ```
 /dapr:run
-```
-
-### 3. Add Testing
-
-```
-/dapr:test unit      # Unit tests with mocked DAPR
-/dapr:test integration  # Integration tests with real DAPR
 ```
 
 ### 4. Deploy to Azure
@@ -127,240 +169,207 @@ Creates a FastAPI microservice with:
 /dapr:deploy aca
 ```
 
-## Multi-Service Projects
+## DAPR Agents (v2.1)
 
-Create projects with multiple services:
-
-```
-/dapr:project shop --services "order-service,inventory-service,payment-service"
-```
-
-Or use templates:
-
-```
-/dapr:project shop --template ecommerce
-/dapr:project iot-hub --template iot
-/dapr:project order-saga --template saga
-```
-
-### Generated Structure
-
-```
-shop/
-├── dapr.yaml                      # Multi-app configuration
-├── components/                    # Shared DAPR components
-│   ├── statestore.yaml
-│   ├── pubsub.yaml
-│   └── resiliency.yaml
-├── services/
-│   ├── order-service/
-│   ├── inventory-service/
-│   └── payment-service/
-├── infrastructure/
-│   ├── docker-compose.yaml
-│   └── bicep/
-└── tests/
-```
-
-## New Building Blocks (v2.0)
-
-### Configuration API
+### Basic Agent
 
 ```python
+from dapr_agents import AssistantAgent, tool
+
+@tool
+async def search(query: str) -> str:
+    """Search for information."""
+    # Your implementation
+    return f"Results for: {query}"
+
+agent = AssistantAgent(
+    name="assistant",
+    role="Helpful Assistant",
+    instructions="Help users find information.",
+    tools=[search],
+    model="gpt-4o"
+)
+
+# Run interactively
+await agent.run("Search for DAPR documentation")
+```
+
+### Durable Agent (Workflow-Backed)
+
+```python
+from dapr.ext.workflow import workflow, activity
+from dapr_agents import AssistantAgent
+
+@activity
+async def research_activity(ctx, topic: str) -> str:
+    agent = AssistantAgent(name="researcher", ...)
+    return await agent.run(f"Research: {topic}")
+
+@workflow
+def research_workflow(ctx: DaprWorkflowContext, topic: str):
+    # Durable execution with automatic retries
+    result = yield ctx.call_activity(research_activity, input=topic)
+    return result
+```
+
+### Multi-Agent System
+
+```python
+from dapr_agents import AssistantAgent
+
+# Specialized agents
+technical = AssistantAgent(name="technical", role="Technical Support", ...)
+billing = AssistantAgent(name="billing", role="Billing Support", ...)
+
+# Router agent
+router = AssistantAgent(
+    name="router",
+    instructions="Route requests to technical or billing based on content.",
+    ...
+)
+
+# Orchestrate via DAPR workflow
+@workflow
+def multi_agent_workflow(ctx, request):
+    category = yield ctx.call_activity(route, input=request)
+    result = yield ctx.call_activity(handle, input={"category": category, ...})
+    return result
+```
+
+### Agent Tools
+
+```python
+from dapr_agents import tool
 from dapr.clients import DaprClient
 
-async with DaprClient() as client:
-    # Get configuration
-    config = await client.get_configuration(
-        store_name="configstore",
-        keys=["feature-flags", "rate-limits"]
-    )
-
-    # Subscribe to changes
-    async for update in client.subscribe_configuration(
-        store_name="configstore",
-        keys=["feature-flags"]
-    ):
-        print(f"Config updated: {update}")
-```
-
-### Distributed Lock
-
-```python
-async with DaprClient() as client:
-    # Acquire lock
-    lock = await client.try_lock(
-        store_name="lockstore",
-        resource_id="order-123",
-        lock_owner="service-a",
-        expiry_in_seconds=60
-    )
-
-    if lock.success:
-        # Critical section
-        await process_order()
-        await client.unlock(
-            store_name="lockstore",
-            resource_id="order-123",
-            lock_owner="service-a"
-        )
-```
-
-### Cryptography
-
-```python
-async with DaprClient() as client:
-    # Encrypt
-    encrypted = await client.encrypt(
-        data=b"sensitive data",
-        options=EncryptOptions(
-            component_name="vault",
-            key_name="my-key",
-            key_wrap_algorithm="RSA"
-        )
-    )
-
-    # Decrypt
-    decrypted = await client.decrypt(
-        data=encrypted,
-        options=DecryptOptions(component_name="vault")
-    )
-```
-
-### Jobs (Scheduled Tasks)
-
-```python
-async with DaprClient() as client:
-    # Schedule a job
-    await client.schedule_job(
-        name="daily-cleanup",
-        schedule="0 0 * * *",  # Cron: midnight daily
-        data={"type": "cleanup"}
-    )
-```
-
-### Conversation (LLM)
-
-```python
-async with DaprClient() as client:
-    response = await client.converse(
-        component_name="openai",
-        inputs=[
-            ConversationInput(content="Hello!", role="user")
-        ]
-    )
-    print(response.outputs[0].content)
-```
-
-## CI/CD Integration
-
-Generate production-ready pipelines:
-
-```
-/dapr:cicd github --target aca
-/dapr:cicd azure-devops --target aks
-```
-
-### Generated Pipeline Features
-
-**CI (Continuous Integration)**
-- Ruff linting, MyPy type checking
-- Unit tests with pytest
-- DAPR configuration validation
-- Security scanning with Trivy
-- Container build and push
-
-**CD (Continuous Deployment)**
-- Blue-green deployment
-- Health check verification
-- Automatic rollback on failure
-- DAPR component updates
-
-## Security Scanning
-
-```
-/dapr:security
-```
-
-Detects:
-- Plain-text secrets in component files
-- Missing secret store references
-- Hardcoded connection strings
-- Missing access control policies
-- Unscoped components
-
-## Testing Support
-
-### Mocked DAPR Client
-
-```python
-import pytest
-from tests.conftest import mock_dapr_client
-
-async def test_state_operations(mock_dapr_client):
-    await mock_dapr_client.save_state("store", "key", "value")
-    state = await mock_dapr_client.get_state("store", "key")
-    assert state.data == b"value"
-```
-
-### Integration Tests
-
-```python
-@pytest.mark.integration
-async def test_service_invocation():
+@tool
+async def save_to_state(key: str, value: str) -> str:
+    """Save data to DAPR state store."""
     async with DaprClient() as client:
-        response = await client.invoke_method(
-            app_id="my-service",
-            method_name="health"
-        )
-        assert response.status_code == 200
+        await client.save_state("statestore", key, value)
+    return f"Saved: {key}"
+
+@tool
+async def publish_event(topic: str, data: dict) -> str:
+    """Publish event via DAPR pub/sub."""
+    async with DaprClient() as client:
+        await client.publish_event("pubsub", topic, data)
+    return f"Published to: {topic}"
 ```
 
-## Example Projects
+### MCP Integration
 
-### E-Commerce (Saga Pattern)
-Complete order processing with inventory reservation, payment, and compensation.
+```python
+from dapr_agents.mcp import MCPClient, MCPServerConfig
 
-```
-examples/ecommerce/
-├── services/
-│   ├── order-service/      # Workflow orchestration
-│   ├── inventory-service/  # Actor-based stock
-│   ├── payment-service/    # Payment processing
-│   └── notification-service/
-└── dapr.yaml
-```
+# Connect to MCP servers
+mcp_config = MCPServerConfig(
+    name="filesystem",
+    command="npx",
+    args=["-y", "@modelcontextprotocol/server-filesystem", "/data"]
+)
 
-### IoT Processing
-Real-time device telemetry with actors and alerting.
+client = MCPClient(mcp_config)
+await client.connect()
+tools = await client.list_tools()
 
-```
-examples/iot-processing/
-├── services/
-│   ├── device-gateway/     # Telemetry ingestion
-│   ├── device-actor/       # Per-device state
-│   ├── analytics-service/  # Stream processing
-│   └── alerting-service/
-└── dapr.yaml
+# Use MCP tools with your agent
+agent = AssistantAgent(
+    name="mcp-agent",
+    tools=tools,
+    ...
+)
 ```
 
-### Saga Patterns
-Sequential, parallel, and choreography saga examples.
+## Framework Integrations
+
+### CrewAI + DAPR
+
+Run CrewAI crews as durable DAPR workflows:
+
+```python
+from crewai import Agent, Task, Crew
+from dapr.ext.workflow import workflow, activity
+
+@activity
+async def run_crew(ctx, topic: str) -> str:
+    researcher = Agent(role="Researcher", ...)
+    writer = Agent(role="Writer", ...)
+
+    crew = Crew(
+        agents=[researcher, writer],
+        tasks=[...],
+        process=Process.sequential
+    )
+
+    return crew.kickoff()
+
+@workflow
+def crewai_workflow(ctx, topic):
+    # Durable execution with checkpointing
+    result = yield ctx.call_activity(run_crew, input=topic)
+    return result
+```
+
+### OpenAI Agents + DAPR
+
+Persistent sessions with DAPR state:
+
+```python
+from openai import OpenAI
+from dapr.clients import DaprClient
+
+class DaprSessionManager:
+    async def save_session(self, session_id: str, thread_id: str):
+        async with DaprClient() as client:
+            await client.save_state(
+                "statestore",
+                f"session-{session_id}",
+                {"thread_id": thread_id}
+            )
+
+    async def load_session(self, session_id: str):
+        async with DaprClient() as client:
+            state = await client.get_state("statestore", f"session-{session_id}")
+            return state.data
+```
+
+## Template Structure
 
 ```
-examples/saga-patterns/
-├── services/
-│   ├── orchestrator/       # Saga coordinator
-│   ├── service-a/
-│   ├── service-b/
-│   └── service-c/
-└── README.md               # Pattern documentation
+templates/
+├── agents/
+│   ├── assistant_agent.py      # Basic AssistantAgent
+│   ├── durable_agent.py        # Workflow-backed agent
+│   ├── agent_service.py        # REST API agent
+│   ├── multi_agent_workflow.py # Multi-agent system
+│   ├── requirements.txt
+│   ├── patterns/
+│   │   ├── prompt_chaining.py
+│   │   ├── parallelization.py
+│   │   ├── routing.py
+│   │   ├── evaluator_optimizer.py
+│   │   └── human_in_loop.py
+│   └── tools/
+│       ├── custom_tool_template.py
+│       ├── http_tool.py
+│       ├── state_tool.py
+│       ├── pubsub_tool.py
+│       └── mcp_integration.py
+└── integrations/
+    ├── crewai_workflow.py
+    ├── openai_agents_session.py
+    └── requirements.txt
 ```
 
 ## Hooks (Auto-Validation)
 
 The plugin automatically validates:
 - Component YAML files on save
+- Agent configurations (`*_agent.py`, `*agent*.py`)
+- Tool definitions (`tools/*.py`)
+- Pattern implementations (`patterns/*.py`)
+- Integration code (`integrations/*.py`)
 - Resiliency policy configurations
 - GitHub Actions workflows
 - Dockerfiles for DAPR compatibility
@@ -372,6 +381,23 @@ The plugin automatically validates:
 - DAPR CLI (`dapr init`)
 - Docker (for local development)
 - Azure CLI (for Azure deployment)
+- OpenAI API key or Azure OpenAI (for AI agents)
+
+## Environment Variables
+
+```bash
+# LLM Configuration (for AI Agents)
+OPENAI_API_KEY=sk-...
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_ENDPOINT=...
+LLM_MODEL=gpt-4o
+
+# DAPR Configuration
+DAPR_HTTP_PORT=3500
+DAPR_GRPC_PORT=50001
+STATE_STORE_NAME=statestore
+PUBSUB_NAME=pubsub
+```
 
 ## License
 

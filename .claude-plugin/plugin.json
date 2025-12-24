@@ -1,7 +1,7 @@
 {
   "name": "dapr",
-  "version": "2.0.0",
-  "description": "Comprehensive DAPR development plugin for Python microservices with full Azure integration. Covers all 12 DAPR building blocks: state management, pub/sub, service invocation, actors, workflows, bindings, secrets, configuration, distributed lock, cryptography, jobs, and conversation (LLM). Includes testing support, CI/CD integration, observability, and security scanning.",
+  "version": "2.1.0",
+  "description": "Comprehensive DAPR development plugin for Python microservices with full Azure integration. Covers all 12 DAPR building blocks plus DAPR Agents AI framework. Features: state management, pub/sub, service invocation, actors, workflows, bindings, secrets, configuration, distributed lock, cryptography, jobs, conversation (LLM), AI agents, agentic patterns, multi-agent orchestration, CrewAI and OpenAI Agents integrations. Includes testing support, CI/CD integration, observability, and security scanning.",
   "author": {
     "name": "sahib"
   },
@@ -24,7 +24,15 @@
     "opentelemetry",
     "cicd",
     "github-actions",
-    "security"
+    "security",
+    "ai-agents",
+    "dapr-agents",
+    "llm",
+    "multi-agent",
+    "crewai",
+    "openai-agents",
+    "tool-calling",
+    "mcp"
   ],
   "commands": "./commands/",
   "agents": "./agents/",
