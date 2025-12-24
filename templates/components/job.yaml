@@ -1,0 +1,49 @@
+# DAPR Jobs Component Configuration
+# Building Block: Jobs (Scheduler)
+# API: POST /v1.0-alpha1/jobs/<name>
+# API: GET /v1.0-alpha1/jobs/<name>
+# API: DELETE /v1.0-alpha1/jobs/<name>
+
+# Note: The Jobs API uses the DAPR Scheduler service, not a component.
+# This file documents the configuration for the Scheduler service.
+
+# ==========================================================================
+# Scheduler Service Configuration (Helm values for Kubernetes)
+# ==========================================================================
+# When deploying to Kubernetes, configure the Scheduler service:
+#
+# dapr_scheduler:
+#   etcdDataDirPath: /var/lock/dapr/scheduler
+#   replicaCount: 3  # For HA (must be odd: 1, 3, 5)
+#   storageSize: 16Gi  # Increase for production
+#   storageClassName: default
+#
+# ==========================================================================
+
+# For local development, the Scheduler runs automatically with `dapr init`
+
+# ==========================================================================
+# Job Scheduling Patterns
+# ==========================================================================
+#
+# Schedule formats supported:
+# - "@every 15m"          - Every 15 minutes
+# - "@every 1h"           - Every hour
+# - "@daily"              - Once a day at midnight
+# - "@hourly"             - Once an hour
+# - "@weekly"             - Once a week
+# - "0 30 * * * *"        - Cron: At minute 30 of every hour
+# - "0 0 9 * * MON-FRI"   - Cron: 9 AM on weekdays
+#
+# DueTime formats:
+# - "2024-12-25T09:00:00Z"           - ISO 8601 timestamp
+# - "2024-12-25T09:00:00-08:00"      - With timezone
+# - "5m"                              - 5 minutes from now
+# - "1h30m"                           - 1 hour 30 minutes from now
+#
+# TTL (Time to Live):
+# - "1h"                              - Job expires after 1 hour
+# - "24h"                             - Job expires after 24 hours
+# - "720h"                            - Job expires after 30 days
+#
+# ==========================================================================

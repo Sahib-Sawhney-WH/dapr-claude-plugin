@@ -1,0 +1,52 @@
+# DAPR Configuration Component Template
+# Building Block: Configuration
+# API: GET /v1.0/configuration/<storename>?key=<key>
+# API: GET /v1.0/configuration/<storename>/subscribe?key=<key>
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{CONFIG_STORE_NAME}}
+  namespace: default
+spec:
+  type: configuration.redis  # Options: configuration.redis, configuration.azure.appconfig
+  version: v1
+  metadata:
+    # ==========================================================================
+    # Redis Configuration Store (Local Development)
+    # ==========================================================================
+    - name: redisHost
+      value: "localhost:6379"
+    - name: redisPassword
+      value: ""  # Use secretKeyRef in production
+    # - name: redisPassword
+    #   secretKeyRef:
+    #     name: redis-secrets
+    #     key: password
+
+    # ==========================================================================
+    # Azure App Configuration (Production)
+    # Uncomment below and comment Redis section for Azure
+    # ==========================================================================
+    # - name: host
+    #   value: "https://<your-appconfig>.azconfig.io"
+    # - name: connectionString
+    #   secretKeyRef:
+    #     name: appconfig-secrets
+    #     key: connectionString
+    # # OR use Managed Identity (recommended):
+    # - name: azureClientId
+    #   value: "<managed-identity-client-id>"
+
+    # ==========================================================================
+    # Common Settings
+    # ==========================================================================
+    - name: maxRetries
+      value: "3"
+    - name: maxRetryDelay
+      value: "5s"
+
+# Scopes: Limit which apps can access this configuration store
+scopes:
+  - app-id-1
+  - app-id-2

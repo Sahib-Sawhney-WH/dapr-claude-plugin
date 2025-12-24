@@ -1,0 +1,74 @@
+# DAPR Conversation Component Template
+# Building Block: Conversation (LLM Integration)
+# API: POST /v1.0-alpha2/conversation/<llm-name>/converse
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{LLM_NAME}}
+  namespace: default
+spec:
+  type: conversation.openai  # Options: conversation.openai, conversation.azure.openai, conversation.anthropic
+  version: v1
+  metadata:
+    # ==========================================================================
+    # OpenAI Configuration
+    # ==========================================================================
+    - name: apiKey
+      secretKeyRef:
+        name: llm-secrets
+        key: openai-api-key
+    - name: model
+      value: "gpt-4-turbo"  # Options: gpt-4, gpt-4-turbo, gpt-3.5-turbo
+
+    # Optional: Custom endpoint (for proxies or compatible APIs)
+    # - name: endpoint
+    #   value: "https://api.openai.com/v1"
+
+    # ==========================================================================
+    # Azure OpenAI Configuration
+    # Uncomment below and comment OpenAI section for Azure
+    # ==========================================================================
+    # type: conversation.azure.openai
+    # - name: endpoint
+    #   value: "https://<resource-name>.openai.azure.com"
+    # - name: deploymentId
+    #   value: "<deployment-name>"
+    # - name: apiVersion
+    #   value: "2024-02-01"
+    # # Use Managed Identity (recommended):
+    # - name: azureClientId
+    #   value: "<managed-identity-client-id>"
+    # # OR use API Key:
+    # - name: apiKey
+    #   secretKeyRef:
+    #     name: llm-secrets
+    #     key: azure-openai-key
+
+    # ==========================================================================
+    # Anthropic (Claude) Configuration
+    # Uncomment below for Anthropic
+    # ==========================================================================
+    # type: conversation.anthropic
+    # - name: apiKey
+    #   secretKeyRef:
+    #     name: llm-secrets
+    #     key: anthropic-api-key
+    # - name: model
+    #   value: "claude-3-sonnet-20240229"
+
+    # ==========================================================================
+    # Common Settings
+    # ==========================================================================
+    - name: temperature
+      value: "0.7"  # 0.0 = deterministic, 1.0 = creative
+    - name: maxTokens
+      value: "4096"
+    # Enable PII scrubbing for sensitive data
+    # - name: scrubPii
+    #   value: "true"
+
+# Scopes: Limit which apps can use this LLM
+scopes:
+  - app-id-1
+  - app-id-2

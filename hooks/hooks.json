@@ -22,6 +22,63 @@
             "prompt": "The dapr.yaml file was just modified at $FILE. Validate that it has proper structure: version field is present, apps array is defined with valid entries (each having appId, appDirPath, appPort), no duplicate app IDs or port conflicts exist. Report any issues found."
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/resiliency*.yaml",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate DAPR resiliency configuration",
+            "prompt": "A DAPR resiliency file was just modified at $FILE. Validate that: apiVersion is 'dapr.io/v1alpha1', kind is 'Resiliency', policies section defines valid retry/timeout/circuitBreaker policies, targets section correctly references app IDs or component names, policy names are referenced correctly. Report any issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/.github/workflows/*.yml",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate GitHub Actions workflow for DAPR",
+            "prompt": "A GitHub Actions workflow was just modified at $FILE. If this is a DAPR-related workflow, verify: DAPR CLI installation step uses official install script, component paths are correctly referenced, AZURE_CREDENTIALS secret is used for Azure deployments (not hardcoded), health checks target the correct endpoints. Report any issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/*secret*.yaml",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Security check for secret files",
+            "prompt": "A file containing 'secret' in the name was modified at $FILE. CRITICAL SECURITY CHECK: Verify that no actual secrets, passwords, API keys, or sensitive credentials are stored in plain text. All secrets should reference a secret store component using secretKeyRef. Report any security issues found."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "glob": "**/Dockerfile",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate Dockerfile for DAPR compatibility",
+            "prompt": "A Dockerfile was modified at $FILE. For DAPR compatibility, verify: EXPOSE statement includes the app port, health endpoint is reachable, no DAPR sidecar is included in the container (DAPR runs as sidecar, not in-container), non-root user is configured if possible. Report any issues found."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command_pattern": "dapr.*deploy|az containerapp.*dapr",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Pre-deployment validation",
+            "prompt": "A DAPR deployment command is about to be executed. Before proceeding, verify: all component YAML files are valid, no plain-text secrets in configurations, resiliency policies are defined for production. If any issues are found, suggest using /dapr:security before deployment."
+          }
+        ]
       }
     ],
     "SessionStart": [

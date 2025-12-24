@@ -1,0 +1,176 @@
+# DAPR Resiliency Policy Template
+# Defines retry, timeout, and circuit breaker policies
+# Reference: https://docs.dapr.io/operations/resiliency/
+
+apiVersion: dapr.io/v1alpha1
+kind: Resiliency
+metadata:
+  name: {{APP_NAME}}-resiliency
+  namespace: default
+spec:
+  # ==========================================================================
+  # POLICIES - Define reusable resiliency behaviors
+  # ==========================================================================
+  policies:
+    # ------------------------------------------------------------------------
+    # Retry Policies
+    # ------------------------------------------------------------------------
+    retries:
+      # Default retry for most operations
+      defaultRetry:
+        policy: exponential
+        maxInterval: 15s
+        maxRetries: 10
+        duration: 1s   # Initial delay
+
+      # Aggressive retry for critical operations
+      criticalRetry:
+        policy: exponential
+        maxInterval: 30s
+        maxRetries: 15
+        duration: 500ms
+
+      # Quick retry for fast-fail scenarios
+      quickRetry:
+        policy: constant
+        duration: 1s
+        maxRetries: 3
+
+      # State store retry
+      stateRetry:
+        policy: exponential
+        maxInterval: 10s
+        maxRetries: 5
+        duration: 500ms
+
+      # Pub/sub retry
+      pubsubRetry:
+        policy: constant
+        duration: 5s
+        maxRetries: 5
+
+      # Service invocation retry
+      serviceRetry:
+        policy: exponential
+        maxInterval: 20s
+        maxRetries: 5
+        duration: 1s
+
+    # ------------------------------------------------------------------------
+    # Timeout Policies
+    # ------------------------------------------------------------------------
+    timeouts:
+      # Default timeout
+      defaultTimeout: 30s
+
+      # Quick timeout for health checks
+      quickTimeout: 5s
+
+      # Long timeout for batch operations
+      longTimeout: 120s
+
+      # State operations
+      stateTimeout: 10s
+
+      # Service invocation
+      serviceTimeout: 60s
+
+    # ------------------------------------------------------------------------
+    # Circuit Breaker Policies
+    # ------------------------------------------------------------------------
+    circuitBreakers:
+      # Default circuit breaker
+      defaultBreaker:
+        maxRequests: 1           # Requests allowed in half-open state
+        interval: 30s            # Interval to clear failure count
+        timeout: 60s             # How long to wait before trying half-open
+        trip: consecutiveFailures >= 5
+
+      # Aggressive breaker for flaky services
+      aggressiveBreaker:
+        maxRequests: 1
+        interval: 15s
+        timeout: 30s
+        trip: consecutiveFailures >= 3
+
+      # Lenient breaker for mostly-reliable services
+      lenientBreaker:
+        maxRequests: 2
+        interval: 60s
+        timeout: 120s
+        trip: consecutiveFailures >= 10
+
+  # ==========================================================================
+  # TARGETS - Apply policies to specific components/services
+  # ==========================================================================
+  targets:
+    # ------------------------------------------------------------------------
+    # Apply to specific apps (service invocation)
+    # ------------------------------------------------------------------------
+    apps:
+      # Example: inventory-service with custom policies
+      inventory-service:
+        retry: serviceRetry
+        timeout: serviceTimeout
+        circuitBreaker: defaultBreaker
+
+      # Example: payment-service with aggressive protection
+      payment-service:
+        retry: criticalRetry
+        timeout: longTimeout
+        circuitBreaker: aggressiveBreaker
+
+      # Example: notification-service with lenient settings
+      notification-service:
+        retry: quickRetry
+        timeout: quickTimeout
+        circuitBreaker: lenientBreaker
+
+    # ------------------------------------------------------------------------
+    # Apply to components (state stores, pub/sub, etc.)
+    # ------------------------------------------------------------------------
+    components:
+      # State store resiliency
+      statestore:
+        outbound:
+          retry: stateRetry
+          timeout: stateTimeout
+          circuitBreaker: defaultBreaker
+
+      # Pub/sub resiliency
+      pubsub:
+        outbound:
+          retry: pubsubRetry
+          timeout: defaultTimeout
+          circuitBreaker: defaultBreaker
+        inbound:
+          retry: pubsubRetry
+          timeout: defaultTimeout
+
+      # Secret store resiliency
+      secretstore:
+        outbound:
+          retry: quickRetry
+          timeout: quickTimeout
+
+      # Lock store resiliency
+      lockstore:
+        outbound:
+          retry: quickRetry
+          timeout: quickTimeout
+
+    # ------------------------------------------------------------------------
+    # Apply to actors
+    # ------------------------------------------------------------------------
+    actors:
+      # Default actor resiliency
+      default:
+        retry: defaultRetry
+        timeout: defaultTimeout
+        circuitBreaker: defaultBreaker
+
+      # Specific actor type
+      OrderActor:
+        retry: criticalRetry
+        timeout: longTimeout
+        circuitBreaker: aggressiveBreaker

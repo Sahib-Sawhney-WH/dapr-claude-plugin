@@ -1,0 +1,75 @@
+# DAPR Multi-App Configuration for E-Commerce Example
+version: 1
+
+apps:
+  # API Gateway - Backend for Frontend
+  - appId: api-gateway
+    appDirPath: ./services/api-gateway
+    appPort: 8000
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    env:
+      LOG_LEVEL: INFO
+      OTEL_SERVICE_NAME: api-gateway
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+      logLevel: info
+
+  # Order Service - Workflow Orchestration
+  - appId: order-service
+    appDirPath: ./services/order-service
+    appPort: 8001
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+    env:
+      LOG_LEVEL: INFO
+      OTEL_SERVICE_NAME: order-service
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+      logLevel: info
+
+  # Inventory Service - Actor-based Stock Management
+  - appId: inventory-service
+    appDirPath: ./services/inventory-service
+    appPort: 8002
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+    env:
+      LOG_LEVEL: INFO
+      OTEL_SERVICE_NAME: inventory-service
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+      logLevel: info
+
+  # Payment Service - Payment Processing
+  - appId: payment-service
+    appDirPath: ./services/payment-service
+    appPort: 8003
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003"]
+    env:
+      LOG_LEVEL: INFO
+      OTEL_SERVICE_NAME: payment-service
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+      logLevel: info
+
+  # Notification Service - Event-Driven Notifications
+  - appId: notification-service
+    appDirPath: ./services/notification-service
+    appPort: 8004
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004"]
+    env:
+      LOG_LEVEL: INFO
+      OTEL_SERVICE_NAME: notification-service
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+      logLevel: info
+
+# Common configuration for all apps
+common:
+  resourcesPath: ./components
+  env:
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4317
+    PYTHONUNBUFFERED: "1"

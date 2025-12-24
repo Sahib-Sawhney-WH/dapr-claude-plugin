@@ -1,0 +1,47 @@
+# DAPR Distributed Lock Component Template
+# Building Block: Distributed Lock
+# API: POST /v1.0-alpha1/lock/<storename>
+# API: POST /v1.0-alpha1/unlock/<storename>
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{LOCK_STORE_NAME}}
+  namespace: default
+spec:
+  type: lock.redis  # Options: lock.redis, lock.postgresql
+  version: v1
+  metadata:
+    # ==========================================================================
+    # Redis Lock Store (Recommended)
+    # ==========================================================================
+    - name: redisHost
+      value: "localhost:6379"
+    - name: redisPassword
+      value: ""  # Use secretKeyRef in production
+    # - name: redisPassword
+    #   secretKeyRef:
+    #     name: redis-secrets
+    #     key: password
+
+    # Enable TLS for production
+    # - name: enableTLS
+    #   value: "true"
+
+    # ==========================================================================
+    # PostgreSQL Lock Store
+    # Uncomment below and comment Redis section for PostgreSQL
+    # ==========================================================================
+    # - name: connectionString
+    #   secretKeyRef:
+    #     name: postgres-secrets
+    #     key: connectionString
+    # - name: tableName
+    #   value: "dapr_locks"
+    # - name: schema
+    #   value: "public"
+
+# Scopes: Limit which apps can use this lock store
+scopes:
+  - app-id-1
+  - app-id-2

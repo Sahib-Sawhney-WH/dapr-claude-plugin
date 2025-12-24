@@ -1,0 +1,48 @@
+# State Store Component for E-Commerce Example
+# Uses Redis for local development, Azure Cosmos DB for production
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: localhost:6379
+    - name: redisPassword
+      value: ""
+    - name: actorStateStore
+      value: "true"  # Enable actor state storage
+scopes:
+  - order-service
+  - inventory-service
+  - payment-service
+
+---
+# Production configuration (Azure Cosmos DB)
+# Uncomment for production deployment
+#
+# apiVersion: dapr.io/v1alpha1
+# kind: Component
+# metadata:
+#   name: statestore
+# spec:
+#   type: state.azure.cosmosdb
+#   version: v1
+#   metadata:
+#     - name: url
+#       secretKeyRef:
+#         name: cosmos-url
+#         key: cosmos-url
+#     - name: masterKey
+#       secretKeyRef:
+#         name: cosmos-key
+#         key: cosmos-key
+#     - name: database
+#       value: ecommerce
+#     - name: collection
+#       value: state
+#     - name: actorStateStore
+#       value: "true"

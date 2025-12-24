@@ -1,0 +1,205 @@
+# DAPR CD Pipeline for Azure Container Apps
+# Deploys DAPR applications to Azure Container Apps
+
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_run:
+    workflows: ["DAPR CI"]
+    types: [completed]
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  CONTAINER_APP_NAME: ${{ secrets.CONTAINER_APP_NAME }}
+  CONTAINER_REGISTRY: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+
+jobs:
+  # ===========================================================================
+  # Deploy to Staging
+  # ===========================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          containerAppName: ${{ env.CONTAINER_APP_NAME }}-staging
+          imageToDeploy: ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ github.repository }}:${{ github.sha }}
+          targetPort: 8000
+
+      - name: Configure DAPR Components
+        run: |
+          # Update DAPR components for staging
+          az containerapp dapr component set \
+            --name ${{ env.CONTAINER_APP_NAME }}-staging \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --yaml components/statestore.yaml
+
+          az containerapp dapr component set \
+            --name ${{ env.CONTAINER_APP_NAME }}-staging \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --yaml components/pubsub.yaml
+
+      - name: Verify Deployment
+        run: |
+          # Wait for deployment
+          sleep 30
+
+          # Health check
+          APP_URL=$(az containerapp show \
+            --name ${{ env.CONTAINER_APP_NAME }}-staging \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+
+          curl -f "https://${APP_URL}/health" || exit 1
+
+      - name: Run Smoke Tests
+        run: |
+          APP_URL=$(az containerapp show \
+            --name ${{ env.CONTAINER_APP_NAME }}-staging \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+
+          # Basic smoke tests
+          curl -f "https://${APP_URL}/health" || exit 1
+          curl -f "https://${APP_URL}/ready" || exit 1
+
+  # ===========================================================================
+  # Deploy to Production
+  # ===========================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: ${{ github.event.inputs.environment == 'production' || github.ref == 'refs/heads/main' }}
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Container Apps (Blue-Green)
+        run: |
+          # Create new revision
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ github.repository }}:${{ github.sha }} \
+            --revision-suffix ${{ github.sha }}
+
+          # Wait for new revision
+          sleep 30
+
+          # Verify new revision health
+          NEW_REVISION="${{ env.CONTAINER_APP_NAME }}--${{ github.sha }}"
+          STATUS=$(az containerapp revision show \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --revision $NEW_REVISION \
+            --query "properties.runningState" -o tsv)
+
+          if [ "$STATUS" != "Running" ]; then
+            echo "New revision not running: $STATUS"
+            exit 1
+          fi
+
+          # Route 100% traffic to new revision
+          az containerapp ingress traffic set \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --revision-weight $NEW_REVISION=100
+
+      - name: Update DAPR Components
+        run: |
+          # Update production DAPR components
+          for component in components/*.yaml; do
+            az containerapp dapr component set \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --yaml "$component"
+          done
+
+      - name: Verify Production Deployment
+        run: |
+          APP_URL=$(az containerapp show \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+
+          # Health checks
+          for i in {1..5}; do
+            curl -f "https://${APP_URL}/health" && break
+            sleep 10
+          done
+
+      - name: Cleanup Old Revisions
+        run: |
+          # Keep only last 3 revisions
+          az containerapp revision list \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[?properties.trafficWeight==\`0\`].name" -o tsv | \
+          tail -n +4 | \
+          xargs -I {} az containerapp revision deactivate \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --revision {}
+
+  # ===========================================================================
+  # Rollback on Failure
+  # ===========================================================================
+  rollback:
+    name: Rollback
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: failure()
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Rollback to Previous Revision
+        run: |
+          # Get previous stable revision
+          PREV_REVISION=$(az containerapp revision list \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[-2].name" -o tsv)
+
+          # Route traffic back
+          az containerapp ingress traffic set \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --revision-weight $PREV_REVISION=100
+
+          echo "Rolled back to revision: $PREV_REVISION"

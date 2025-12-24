@@ -1,0 +1,46 @@
+# DAPR Cryptography Component Template
+# Building Block: Cryptography
+# API: PUT /v1.0-alpha1/crypto/<crypto-store-name>/encrypt
+# API: PUT /v1.0-alpha1/crypto/<crypto-store-name>/decrypt
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{CRYPTO_STORE_NAME}}
+  namespace: default
+spec:
+  type: crypto.azure.keyvault  # Options: crypto.azure.keyvault, crypto.localstorage
+  version: v1
+  metadata:
+    # ==========================================================================
+    # Azure Key Vault (Production - Recommended)
+    # ==========================================================================
+    - name: vaultName
+      value: "{{KEY_VAULT_NAME}}"
+
+    # Authentication via Managed Identity (recommended)
+    - name: azureClientId
+      value: "<managed-identity-client-id>"  # Optional for system-assigned identity
+
+    # OR Authentication via Service Principal
+    # - name: azureTenantId
+    #   value: "<tenant-id>"
+    # - name: azureClientId
+    #   value: "<client-id>"
+    # - name: azureClientSecret
+    #   secretKeyRef:
+    #     name: keyvault-secrets
+    #     key: clientSecret
+
+    # ==========================================================================
+    # Local Storage (Development/Testing Only)
+    # Uncomment below and comment Azure section for local development
+    # ==========================================================================
+    # type: crypto.localstorage
+    # - name: keysDirectory
+    #   value: "./crypto-keys"
+
+# Scopes: Limit which apps can use this crypto store
+scopes:
+  - app-id-1
+  - app-id-2

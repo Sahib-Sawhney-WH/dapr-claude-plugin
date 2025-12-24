@@ -1,0 +1,52 @@
+# DAPR Multi-App Configuration for IoT Processing Example
+version: 1
+
+apps:
+  # Device Gateway - Ingests device telemetry
+  - appId: device-gateway
+    appDirPath: ./services/device-gateway
+    appPort: 8000
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    env:
+      LOG_LEVEL: INFO
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+
+  # Device Actor Service - Per-device state management
+  - appId: device-actor
+    appDirPath: ./services/device-actor
+    appPort: 8001
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+    env:
+      LOG_LEVEL: INFO
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+
+  # Analytics Service - Stream processing
+  - appId: analytics-service
+    appDirPath: ./services/analytics-service
+    appPort: 8002
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+    env:
+      LOG_LEVEL: INFO
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+
+  # Alerting Service - Threshold monitoring
+  - appId: alerting-service
+    appDirPath: ./services/alerting-service
+    appPort: 8003
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003"]
+    env:
+      LOG_LEVEL: INFO
+    daprd:
+      resourcesPath: ./components
+      config: ./config/resiliency.yaml
+
+common:
+  resourcesPath: ./components
+  env:
+    PYTHONUNBUFFERED: "1"
