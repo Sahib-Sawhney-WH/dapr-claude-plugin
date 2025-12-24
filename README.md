@@ -1,5 +1,7 @@
 # DAPR Plugin for Claude Code v2.4
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A comprehensive Claude Code plugin for developing, deploying, and debugging DAPR (Distributed Application Runtime) applications with Python across Azure, AWS, and GCP.
 
 ## What's New in v2.4
