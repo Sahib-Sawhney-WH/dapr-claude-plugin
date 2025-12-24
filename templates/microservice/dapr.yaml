@@ -1,0 +1,13 @@
+version: 1
+common:
+  resourcesPath: ./components
+  env:
+    DAPR_LOG_LEVEL: info
+
+apps:
+  - appId: {{SERVICE_NAME}}
+    appDirPath: .
+    appPort: 8000
+    command: ["python", "main.py"]
+    env:
+      PYTHONUNBUFFERED: "1"

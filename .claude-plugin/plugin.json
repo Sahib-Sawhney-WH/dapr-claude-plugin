@@ -1,0 +1,25 @@
+{
+  "name": "dapr",
+  "version": "1.0.0",
+  "description": "Comprehensive DAPR development plugin for Python microservices with full Azure integration. Covers all DAPR building blocks: state management, pub/sub, service invocation, actors, workflows, bindings, and secrets.",
+  "author": {
+    "name": "sahib"
+  },
+  "keywords": [
+    "dapr",
+    "microservices",
+    "distributed-systems",
+    "azure",
+    "python",
+    "state-management",
+    "pubsub",
+    "actors",
+    "workflows",
+    "container-apps",
+    "kubernetes"
+  ],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,28 @@
+# Pub/Sub Component
+# Default: Redis Streams (for local development)
+# Replace with Azure Service Bus, Kafka, etc. for production
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: localhost:6379
+  - name: consumerID
+    value: "{{SERVICE_NAME}}"
+
+# For Azure Service Bus (production), replace above with:
+# spec:
+#   type: pubsub.azure.servicebus.topics
+#   version: v1
+#   metadata:
+#   - name: namespaceName
+#     value: "<namespace>.servicebus.windows.net"
+#   - name: consumerID
+#     value: "{{SERVICE_NAME}}"
+#   - name: azureClientId
+#     value: "<managed-identity-client-id>"
