@@ -1,0 +1,104 @@
+# AWS SNS/SQS Pub/Sub
+# Fully managed messaging with SNS topics and SQS queues
+#
+# Features:
+#   - Auto-creates SNS topics and SQS queues
+#   - Dead letter queue support
+#   - FIFO queue support for ordering
+#   - Concurrent message processing
+#
+# Authentication: IAM credentials, EKS IRSA, or environment variables
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+  namespace: default
+spec:
+  type: pubsub.aws.snssqs
+  version: v1
+  metadata:
+  # AWS Region
+  - name: region
+    value: "us-east-1"
+
+  # Authentication (omit on EKS with IRSA/IAM roles)
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+  # Message handling
+  - name: messageVisibilityTimeout
+    value: "30"
+  - name: messageRetryLimit
+    value: "5"
+  - name: messageReceiveLimit
+    value: "10"
+  - name: messageWaitTimeSeconds
+    value: "5"
+  - name: messageMaxNumber
+    value: "10"
+
+  # Dead letter queue (recommended for production)
+  - name: sqsDeadLettersQueueName
+    value: "dapr-dlq"
+
+  # Concurrency
+  - name: concurrencyMode
+    value: "parallel"
+  - name: concurrencyLimit
+    value: "100"
+
+  # FIFO queues (for strict ordering)
+  # - name: fifo
+  #   value: "true"
+  # - name: fifoMessageGroupID
+  #   value: "default-group"
+  # - name: concurrencyMode
+  #   value: "single"  # Required for FIFO
+
+  # Disable auto-creation of resources
+  # - name: disableEntityManagement
+  #   value: "true"
+
+  # Local development with LocalStack
+  # - name: endpoint
+  #   value: "http://localhost:4566"
+
+# IAM Policy (minimum permissions):
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "sns:CreateTopic",
+#         "sns:Subscribe",
+#         "sns:Publish",
+#         "sns:GetTopicAttributes"
+#       ],
+#       "Resource": "arn:aws:sns:*:*:*"
+#     },
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "sqs:CreateQueue",
+#         "sqs:GetQueueUrl",
+#         "sqs:GetQueueAttributes",
+#         "sqs:SetQueueAttributes",
+#         "sqs:ReceiveMessage",
+#         "sqs:DeleteMessage",
+#         "sqs:SendMessage"
+#       ],
+#       "Resource": "arn:aws:sqs:*:*:*"
+#     }
+#   ]
+# }
+
+# LocalStack for local development:
+# docker run --rm -p 4566:4566 -e SERVICES=sns,sqs localstack/localstack

@@ -1,0 +1,32 @@
+# Bearer Token (OpenID Connect) Middleware
+# Validates JWT tokens from OIDC providers
+#
+# Usage: Apply to httpPipeline for API protection
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: bearer-token
+  namespace: default
+spec:
+  type: middleware.http.bearer
+  version: v1
+  metadata:
+  # Token audience - your application's client ID
+  - name: audience
+    value: "api://my-application"
+
+  # Token issuer - the identity provider
+  - name: issuer
+    value: "https://login.microsoftonline.com/{tenant}/v2.0"
+
+  # JWKS URL for public key retrieval (optional - auto-discovered from issuer)
+  # - name: jwksURL
+  #   value: "https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys"
+
+# Common issuers:
+# - Microsoft Entra ID: https://login.microsoftonline.com/{tenant}/v2.0
+# - Google: https://accounts.google.com
+# - Auth0: https://{domain}.auth0.com/
+# - Okta: https://{domain}.okta.com
+# - Keycloak: https://{host}/realms/{realm}

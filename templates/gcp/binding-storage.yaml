@@ -1,0 +1,105 @@
+# GCP Cloud Storage Binding
+# Object storage for files, backups, and data lakes
+#
+# Operations: create, get, delete, list
+# Authentication: Workload Identity, Service Account, or ADC
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: gcs-storage
+  namespace: default
+spec:
+  type: bindings.gcp.bucket
+  version: v1
+  metadata:
+  # Required: GCS bucket name
+  - name: bucket
+    value: "my-app-bucket"
+
+  # Authentication type
+  - name: type
+    value: "service_account"
+
+  # Service Account credentials (alternative to Workload Identity)
+  - name: project_id
+    value: "my-gcp-project"
+  - name: private_key_id
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key-id
+  - name: private_key
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key
+  - name: client_email
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-email
+  - name: client_id
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-id
+  - name: auth_uri
+    value: "https://accounts.google.com/o/oauth2/auth"
+  - name: token_uri
+    value: "https://oauth2.googleapis.com/token"
+  - name: auth_provider_x509_cert_url
+    value: "https://www.googleapis.com/oauth2/v1/certs"
+
+  # Decode base64 content (for input binding)
+  # - name: decodeBase64
+  #   value: "false"
+
+# GKE with Workload Identity (recommended):
+# apiVersion: dapr.io/v1alpha1
+# kind: Component
+# metadata:
+#   name: gcs-storage
+# spec:
+#   type: bindings.gcp.bucket
+#   version: v1
+#   metadata:
+#   - name: bucket
+#     value: "my-app-bucket"
+#   - name: type
+#     value: "service_account"
+#   - name: project_id
+#     value: "my-gcp-project"
+
+# Operations:
+#
+# CREATE (upload file):
+# curl -X POST http://localhost:3500/v1.0/bindings/gcs-storage \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "operation": "create",
+#     "data": "base64-encoded-content",
+#     "metadata": {
+#       "name": "path/to/file.txt",
+#       "contentType": "text/plain"
+#     }
+#   }'
+#
+# GET (download file):
+# curl -X POST http://localhost:3500/v1.0/bindings/gcs-storage \
+#   -d '{"operation": "get", "metadata": {"name": "path/to/file.txt"}}'
+#
+# DELETE:
+# curl -X POST http://localhost:3500/v1.0/bindings/gcs-storage \
+#   -d '{"operation": "delete", "metadata": {"name": "path/to/file.txt"}}'
+#
+# LIST:
+# curl -X POST http://localhost:3500/v1.0/bindings/gcs-storage \
+#   -d '{"operation": "list", "metadata": {"prefix": "path/"}}'
+
+# IAM Roles needed:
+# - roles/storage.objectViewer (read)
+# - roles/storage.objectCreator (write)
+# - roles/storage.objectAdmin (full control)
+
+# Enable Cloud Storage API:
+# gcloud services enable storage.googleapis.com
+
+# Create bucket:
+# gsutil mb -l us-central1 gs://my-app-bucket

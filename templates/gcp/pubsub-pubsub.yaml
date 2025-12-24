@@ -1,0 +1,118 @@
+# GCP Pub/Sub
+# Fully managed real-time messaging service
+#
+# Features:
+#   - Auto-creates topics and subscriptions
+#   - Dead letter topic support
+#   - Message ordering support
+#   - Streaming pull for high throughput
+#
+# Authentication: Workload Identity, Service Account, or ADC
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+  namespace: default
+spec:
+  type: pubsub.gcp.pubsub
+  version: v1
+  metadata:
+  # Required: GCP Project ID
+  - name: projectId
+    value: "my-gcp-project"
+
+  # Optional: Consumer ID (defaults to app ID)
+  # - name: consumerID
+  #   value: "my-consumer"
+
+  # Message ordering (requires topic with ordering enabled)
+  - name: enableMessageOrdering
+    value: "false"
+  # - name: orderingKey
+  #   value: "partition-key"
+
+  # Dead letter topic (must exist beforehand)
+  # - name: deadLetterTopic
+  #   value: "my-dlq-topic"
+  # - name: maxDeliveryAttempts
+  #   value: "5"
+
+  # Performance tuning
+  - name: maxOutstandingMessages
+    value: "1000"
+  - name: maxOutstandingBytes
+    value: "1000000000"
+  - name: maxConcurrentConnections
+    value: "10"
+  - name: ackDeadline
+    value: "20s"
+
+  # Reconnection settings
+  - name: maxReconnectionAttempts
+    value: "30"
+  - name: connectionRecoveryInSec
+    value: "2"
+
+  # Disable auto-creation of topics/subscriptions
+  # - name: disableEntityManagement
+  #   value: "true"
+
+  # Authentication using Service Account (alternative to Workload Identity)
+  - name: type
+    value: "service_account"
+  - name: privateKeyId
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key-id
+  - name: privateKey
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key
+  - name: clientEmail
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-email
+  - name: clientId
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-id
+  - name: authUri
+    value: "https://accounts.google.com/o/oauth2/auth"
+  - name: tokenUri
+    value: "https://oauth2.googleapis.com/token"
+  - name: authProviderX509CertUrl
+    value: "https://www.googleapis.com/oauth2/v1/certs"
+  # - name: clientX509CertUrl
+  #   value: "https://www.googleapis.com/robot/v1/metadata/x509/SERVICE_ACCOUNT"
+
+  # Local development with emulator
+  # - name: endpoint
+  #   value: "localhost:8085"
+
+# GKE with Workload Identity (recommended):
+# apiVersion: dapr.io/v1alpha1
+# kind: Component
+# metadata:
+#   name: pubsub
+# spec:
+#   type: pubsub.gcp.pubsub
+#   version: v1
+#   metadata:
+#   - name: projectId
+#     value: "my-gcp-project"
+
+# IAM Roles needed:
+# - roles/pubsub.publisher (publish)
+# - roles/pubsub.subscriber (subscribe)
+# - roles/pubsub.editor (create topics/subscriptions)
+
+# Enable Pub/Sub API:
+# gcloud services enable pubsub.googleapis.com
+
+# Create topic:
+# gcloud pubsub topics create my-topic
+
+# Local development with emulator:
+# docker run -p 8085:8085 gcr.io/google.com/cloudsdktool/cloud-sdk:emulators \
+#   gcloud beta emulators pubsub start --project=local-test-prj --host-port=0.0.0.0:8085

@@ -1,0 +1,56 @@
+# Router Alias Middleware
+# Maps custom HTTP routes to Dapr API endpoints
+# Useful for legacy API compatibility or simplified routing
+#
+# Usage: Apply to httpPipeline to enable route aliasing
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: routeralias
+  namespace: default
+spec:
+  type: middleware.http.routeralias
+  version: v1
+  metadata:
+  # Route mappings: incoming path -> Dapr API path
+  # Supports path parameters with {param} syntax
+  - name: routes
+    value: |
+      {
+        "/api/orders": "/v1.0/invoke/order-service/method/orders",
+        "/api/orders/{id}": "/v1.0/invoke/order-service/method/orders/{id}",
+        "/api/products": "/v1.0/invoke/catalog-service/method/products",
+        "/api/users/{id}/profile": "/v1.0/invoke/user-service/method/profile",
+        "/health": "/v1.0/invoke/health-service/method/check"
+      }
+
+# Route examples:
+#
+# Incoming request:              Transformed to:
+# GET /api/orders?status=pending -> GET /v1.0/invoke/order-service/method/orders?status=pending
+# GET /api/orders/123            -> GET /v1.0/invoke/order-service/method/orders/123
+# POST /api/products             -> POST /v1.0/invoke/catalog-service/method/products
+#
+# Use cases:
+# - Expose simplified URLs to external clients
+# - Maintain backwards compatibility during migration
+# - Create a unified API gateway experience
+# - Hide Dapr-specific URL patterns from consumers
+
+---
+# Example: YAML format routes
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: routeralias-yaml
+  namespace: default
+spec:
+  type: middleware.http.routeralias
+  version: v1
+  metadata:
+  - name: routes
+    value: |
+      /mall/activity/info: /v1.0/invoke/mall-service.default/method/activity/info
+      /hello/activity/{id}/info: /v1.0/invoke/hello-service.default/method/activity/info
+      /hello/activity/{id}/user: /v1.0/invoke/hello-service.default/method/activity/user

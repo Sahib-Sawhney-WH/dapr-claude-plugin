@@ -1,0 +1,30 @@
+# Rate Limiting Middleware
+# Limits requests per second by client IP
+#
+# Note: Rate limit is per sidecar, not cluster-wide
+# Uses X-Forwarded-For and X-Real-IP headers for client identification
+#
+# Usage: Apply as FIRST handler in httpPipeline
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: ratelimit
+  namespace: default
+spec:
+  type: middleware.http.ratelimit
+  version: v1
+  metadata:
+  # Maximum requests per second per client IP
+  - name: maxRequestsPerSecond
+    value: "10"
+
+# When limit is exceeded, returns HTTP 429 Too Many Requests
+#
+# Recommended limits by use case:
+# - Public API: 10-100 RPS
+# - Authenticated API: 100-1000 RPS
+# - Internal services: 1000+ RPS
+# - Health checks: Exclude from rate limiting
+#
+# For per-user rate limiting, use OPA middleware with JWT claims

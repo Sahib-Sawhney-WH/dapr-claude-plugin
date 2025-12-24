@@ -1,0 +1,174 @@
+# AWS ECS Deployment with DAPR
+# Amazon Elastic Container Service configuration
+#
+# Note: ECS requires sidecar pattern for DAPR
+# DAPR runs as a sidecar container in the task definition
+#
+# Prerequisites:
+#   - ECS cluster (Fargate or EC2)
+#   - ECR repository with images
+#   - IAM task execution role
+
+---
+# ECS Task Definition with DAPR sidecar
+# Deploy with: aws ecs register-task-definition --cli-input-json file://task-definition.json
+
+{
+  "family": "my-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/my-service-task-role",
+  "containerDefinitions": [
+    {
+      "name": "my-service",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/my-service:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "DAPR_HTTP_PORT", "value": "3500"},
+        {"name": "DAPR_GRPC_PORT", "value": "50001"}
+      ],
+      "dependsOn": [
+        {
+          "containerName": "daprd",
+          "condition": "START"
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/my-service",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    },
+    {
+      "name": "daprd",
+      "image": "daprio/daprd:latest",
+      "essential": true,
+      "command": [
+        "./daprd",
+        "--app-id", "my-service",
+        "--app-port", "8000",
+        "--dapr-http-port", "3500",
+        "--dapr-grpc-port", "50001",
+        "--components-path", "/components",
+        "--config", "/config/config.yaml",
+        "--log-level", "info"
+      ],
+      "portMappings": [
+        {"containerPort": 3500, "protocol": "tcp"},
+        {"containerPort": 50001, "protocol": "tcp"}
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "dapr-components",
+          "containerPath": "/components",
+          "readOnly": true
+        },
+        {
+          "sourceVolume": "dapr-config",
+          "containerPath": "/config",
+          "readOnly": true
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/my-service-dapr",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "dapr-components",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-xxxxxxxx",
+        "rootDirectory": "/dapr/components"
+      }
+    },
+    {
+      "name": "dapr-config",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-xxxxxxxx",
+        "rootDirectory": "/dapr/config"
+      }
+    }
+  ]
+}
+
+---
+# ECS Service Definition
+# Deploy with: aws ecs create-service --cli-input-json file://service.json
+
+{
+  "serviceName": "my-service",
+  "cluster": "my-cluster",
+  "taskDefinition": "my-service",
+  "desiredCount": 3,
+  "launchType": "FARGATE",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["subnet-xxx", "subnet-yyy"],
+      "securityGroups": ["sg-xxx"],
+      "assignPublicIp": "DISABLED"
+    }
+  },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:REGION:ACCOUNT:targetgroup/my-service/xxx",
+      "containerName": "my-service",
+      "containerPort": 8000
+    }
+  ],
+  "serviceRegistries": [
+    {
+      "registryArn": "arn:aws:servicediscovery:REGION:ACCOUNT:service/srv-xxx"
+    }
+  ]
+}
+
+# ECS Deployment Steps:
+#
+# 1. Create ECR repository:
+# aws ecr create-repository --repository-name my-service
+#
+# 2. Build and push images:
+# aws ecr get-login-password | docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.REGION.amazonaws.com
+# docker build -t my-service .
+# docker tag my-service:latest ACCOUNT.dkr.ecr.REGION.amazonaws.com/my-service:latest
+# docker push ACCOUNT.dkr.ecr.REGION.amazonaws.com/my-service:latest
+#
+# 3. Create EFS for DAPR components:
+# aws efs create-file-system --creation-token dapr-components
+#
+# 4. Upload DAPR components to EFS
+#
+# 5. Register task definition:
+# aws ecs register-task-definition --cli-input-json file://task-definition.json
+#
+# 6. Create service:
+# aws ecs create-service --cli-input-json file://service.json
+
+# Alternative: App Runner (Simpler but less DAPR support)
+# For simple services, consider AWS App Runner which has
+# built-in load balancing and auto-scaling but limited
+# sidecar support.

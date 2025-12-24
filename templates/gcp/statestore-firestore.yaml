@@ -1,0 +1,98 @@
+# GCP Firestore State Store
+# Serverless document database with real-time sync
+#
+# Authentication options:
+#   - Application Default Credentials (GKE Workload Identity)
+#   - Service Account JSON credentials
+#   - Environment variable GOOGLE_APPLICATION_CREDENTIALS
+#
+# Prerequisites:
+#   - Enable Firestore API in GCP Console
+#   - Create Firestore database (Native mode recommended)
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: default
+spec:
+  type: state.gcp.firestore
+  version: v1
+  metadata:
+  # Required: GCP Project ID
+  - name: project_id
+    value: "my-gcp-project"
+
+  # Required: Credentials type
+  - name: type
+    value: "service_account"
+
+  # Entity kind (collection name) - default: "DaprState"
+  - name: entity_kind
+    value: "DaprState"
+
+  # Disable indexing for large state values (avoid index size limits)
+  # - name: noindex
+  #   value: "true"
+
+  # Authentication using Service Account (alternative to Workload Identity)
+  # Use secretKeyRef for production
+  - name: private_key_id
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key-id
+  - name: private_key
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key
+  - name: client_email
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-email
+  - name: client_id
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-id
+
+  # OAuth endpoints (standard values)
+  - name: auth_uri
+    value: "https://accounts.google.com/o/oauth2/auth"
+  - name: token_uri
+    value: "https://oauth2.googleapis.com/token"
+  - name: auth_provider_x509_cert_url
+    value: "https://www.googleapis.com/oauth2/v1/certs"
+  # - name: client_x509_cert_url
+  #   value: "https://www.googleapis.com/robot/v1/metadata/x509/SERVICE_ACCOUNT_EMAIL"
+
+  # Local development with Firestore Emulator
+  # - name: endpoint
+  #   value: "localhost:8432"
+
+# GKE with Workload Identity (recommended):
+# Only project_id and type are needed - auth is automatic
+#
+# apiVersion: dapr.io/v1alpha1
+# kind: Component
+# metadata:
+#   name: statestore
+# spec:
+#   type: state.gcp.firestore
+#   version: v1
+#   metadata:
+#   - name: project_id
+#     value: "my-gcp-project"
+#   - name: type
+#     value: "service_account"
+
+# IAM Roles needed:
+# - roles/datastore.user (read/write)
+# - Or roles/datastore.viewer (read-only)
+
+# Enable Firestore API:
+# gcloud services enable firestore.googleapis.com
+
+# Create Firestore database:
+# gcloud firestore databases create --location=us-central1
+
+# Local development with emulator:
+# gcloud emulators firestore start --host-port=localhost:8432

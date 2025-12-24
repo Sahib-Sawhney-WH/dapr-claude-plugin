@@ -1,0 +1,53 @@
+# OAuth2 Authorization Code Middleware
+# Use for user authentication with OAuth2 providers
+#
+# Required secrets:
+#   - oauth-secrets/client-id
+#   - oauth-secrets/client-secret
+#
+# Usage: Apply to httpPipeline in Configuration
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: oauth2
+  namespace: default
+spec:
+  type: middleware.http.oauth2
+  version: v1
+  metadata:
+  # OAuth2 Client Credentials (use secret references)
+  - name: clientId
+    secretKeyRef:
+      name: oauth-secrets
+      key: client-id
+  - name: clientSecret
+    secretKeyRef:
+      name: oauth-secrets
+      key: client-secret
+
+  # OAuth2 Scopes (space-separated)
+  - name: scopes
+    value: "openid profile email"
+
+  # OAuth2 Provider URLs
+  - name: authURL
+    value: "https://provider.example.com/oauth2/authorize"
+  - name: tokenURL
+    value: "https://provider.example.com/oauth2/token"
+
+  # Redirect URL after authentication
+  - name: redirectURL
+    value: "http://localhost:8080/callback"
+
+  # Header to forward the access token
+  - name: authHeaderName
+    value: "authorization"
+
+  # Security options
+  - name: forceHTTPS
+    value: "false"  # Set to "true" in production
+
+  # Path filter (regex) - only apply to matching paths
+  # - name: pathFilter
+  #   value: ".*/api/.*"

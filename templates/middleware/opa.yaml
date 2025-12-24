@@ -1,0 +1,69 @@
+# Open Policy Agent (OPA) Middleware
+# Enforces authorization policies using Rego language
+#
+# Usage: Apply to httpPipeline after authentication middleware
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: opa-policy
+  namespace: default
+spec:
+  type: middleware.http.opa
+  version: v1
+  metadata:
+  # HTTP status code when request is denied
+  - name: defaultStatus
+    value: "403"
+
+  # Headers to pass to OPA for policy decisions
+  - name: includedHeaders
+    value: "Authorization, X-User-Role, X-Tenant-ID, X-Request-ID"
+
+  # Whether to read request body (performance impact)
+  - name: readBody
+    value: "false"
+
+  # Rego policy (inline)
+  - name: rego
+    value: |
+      package http
+
+      import future.keywords.if
+      import future.keywords.in
+
+      default allow = false
+
+      # Allow requests with valid authorization header
+      allow if {
+        input.request.headers["Authorization"]
+      }
+
+      # Allow admin role
+      allow if {
+        input.request.headers["X-User-Role"] == "admin"
+      }
+
+      # Allow GET requests to public paths
+      allow if {
+        input.request.method == "GET"
+        startswith(input.request.path, "/public/")
+      }
+
+      # Custom 401 response when no auth header
+      allow = {
+        "status_code": 401,
+        "additional_headers": {
+          "WWW-Authenticate": "Bearer realm=\"api\""
+        }
+      } if {
+        not input.request.headers["Authorization"]
+        not startswith(input.request.path, "/public/")
+      }
+
+# For complex policies, load from external file:
+# - name: rego
+#   value: |
+#     # @include policies/main.rego
+
+# Test policies at: https://play.openpolicyagent.org/

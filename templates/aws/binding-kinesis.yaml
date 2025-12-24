@@ -1,0 +1,108 @@
+# AWS Kinesis Binding
+# Real-time streaming data for analytics and event processing
+#
+# Use for: Log aggregation, real-time analytics, IoT data streams
+# For simple messaging, use SQS instead
+#
+# Authentication: IAM credentials, EKS IRSA, or environment variables
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kinesis-stream
+  namespace: default
+spec:
+  type: bindings.aws.kinesis
+  version: v1
+  metadata:
+  # Required: Kinesis stream name
+  - name: streamName
+    value: "my-data-stream"
+
+  # Required: Consumer name (for input binding)
+  - name: consumerName
+    value: "dapr-consumer"
+
+  # AWS Region
+  - name: region
+    value: "us-east-1"
+
+  # Authentication (omit on EKS with IRSA/IAM roles)
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+  # Kinesis mode: shared (default) or extended
+  - name: mode
+    value: "shared"
+
+  # Local development with LocalStack
+  # - name: endpoint
+  #   value: "http://localhost:4566"
+
+# Input binding: Records delivered to /kinesis-stream endpoint
+# Output binding: Put records to stream
+
+# Put record:
+# curl -X POST http://localhost:3500/v1.0/bindings/kinesis-stream \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "data": {"sensorId": "s1", "value": 42.5},
+#     "metadata": {
+#       "partitionKey": "sensor-s1"
+#     }
+#   }'
+
+# IAM Policy:
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [{
+#     "Effect": "Allow",
+#     "Action": [
+#       "kinesis:PutRecord",
+#       "kinesis:PutRecords",
+#       "kinesis:GetRecords",
+#       "kinesis:GetShardIterator",
+#       "kinesis:DescribeStream",
+#       "kinesis:DescribeStreamSummary",
+#       "kinesis:RegisterStreamConsumer",
+#       "kinesis:SubscribeToShard"
+#     ],
+#     "Resource": "arn:aws:kinesis:*:*:stream/my-data-stream"
+#   }]
+# }
+
+# Create stream (AWS CLI):
+# aws kinesis create-stream --stream-name my-data-stream --shard-count 1
+
+---
+# AWS DynamoDB Streams Binding (for change data capture)
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: dynamodb-changes
+  namespace: default
+spec:
+  type: bindings.aws.dynamodb
+  version: v1
+  metadata:
+  - name: table
+    value: "my-table"
+  - name: region
+    value: "us-east-1"
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+# DynamoDB binding is output-only (PutItem, DeleteItem, etc.)
+# For CDC, enable DynamoDB Streams and use Lambda or Kinesis

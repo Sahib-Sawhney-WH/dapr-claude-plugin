@@ -1,0 +1,158 @@
+# GCP GKE Deployment with DAPR
+# Google Kubernetes Engine configuration
+#
+# Prerequisites:
+#   - GKE cluster with DAPR installed
+#   - Workload Identity configured
+#   - kubectl configured for cluster
+
+---
+# Kubernetes Deployment with DAPR sidecar
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-service
+  namespace: default
+  labels:
+    app: my-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-service
+  template:
+    metadata:
+      labels:
+        app: my-service
+      annotations:
+        # DAPR sidecar injection
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "my-service"
+        dapr.io/app-port: "8000"
+        dapr.io/app-protocol: "http"
+
+        # Sidecar configuration
+        dapr.io/config: "appconfig"
+        dapr.io/log-level: "info"
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
+
+        # Resource limits for sidecar
+        dapr.io/sidecar-cpu-request: "100m"
+        dapr.io/sidecar-cpu-limit: "500m"
+        dapr.io/sidecar-memory-request: "128Mi"
+        dapr.io/sidecar-memory-limit: "512Mi"
+    spec:
+      # Use Workload Identity for GCP authentication
+      serviceAccountName: my-service-ksa
+      containers:
+      - name: my-service
+        image: gcr.io/PROJECT_ID/my-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DAPR_HTTP_PORT
+          value: "3500"
+        - name: DAPR_GRPC_PORT
+          value: "50001"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Kubernetes Service Account with Workload Identity
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-service-ksa
+  namespace: default
+  annotations:
+    # Link KSA to GSA for Workload Identity
+    iam.gke.io/gcp-service-account: my-service-gsa@PROJECT_ID.iam.gserviceaccount.com
+
+---
+# Service for internal communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  namespace: default
+spec:
+  selector:
+    app: my-service
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP
+
+---
+# DAPR Configuration
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: appconfig
+  namespace: default
+spec:
+  tracing:
+    samplingRate: "1"
+    otel:
+      endpointAddress: "http://otel-collector.observability:4317"
+      isSecure: false
+      protocol: grpc
+  metrics:
+    enabled: true
+  logging:
+    apiLogging:
+      enabled: true
+
+# GKE Setup Commands:
+#
+# 1. Create GKE cluster with Workload Identity:
+# gcloud container clusters create my-cluster \
+#   --zone us-central1-a \
+#   --workload-pool=PROJECT_ID.svc.id.goog \
+#   --num-nodes=3
+#
+# 2. Install DAPR:
+# dapr init -k
+#
+# 3. Create Google Service Account (GSA):
+# gcloud iam service-accounts create my-service-gsa \
+#   --display-name="My Service GSA"
+#
+# 4. Grant GSA permissions:
+# gcloud projects add-iam-policy-binding PROJECT_ID \
+#   --member="serviceAccount:my-service-gsa@PROJECT_ID.iam.gserviceaccount.com" \
+#   --role="roles/datastore.user"
+# gcloud projects add-iam-policy-binding PROJECT_ID \
+#   --member="serviceAccount:my-service-gsa@PROJECT_ID.iam.gserviceaccount.com" \
+#   --role="roles/pubsub.editor"
+#
+# 5. Link KSA to GSA:
+# gcloud iam service-accounts add-iam-policy-binding \
+#   my-service-gsa@PROJECT_ID.iam.gserviceaccount.com \
+#   --role="roles/iam.workloadIdentityUser" \
+#   --member="serviceAccount:PROJECT_ID.svc.id.goog[default/my-service-ksa]"
+#
+# 6. Deploy application:
+# kubectl apply -f deploy-gke.yaml
+#
+# 7. Verify DAPR sidecar:
+# kubectl get pods -l app=my-service
+# kubectl logs my-service-xxx -c daprd

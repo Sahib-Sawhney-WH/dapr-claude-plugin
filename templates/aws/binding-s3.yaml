@@ -1,0 +1,126 @@
+# AWS S3 Binding
+# Object storage for files, backups, and data lakes
+#
+# Operations: create, get, delete, list
+# Also compatible with S3-compatible services (MinIO, DigitalOcean Spaces)
+#
+# Authentication: IAM credentials, EKS IRSA, or environment variables
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: s3-storage
+  namespace: default
+spec:
+  type: bindings.aws.s3
+  version: v1
+  metadata:
+  # Required: S3 bucket name
+  - name: bucket
+    value: "my-app-bucket"
+
+  # AWS Region
+  - name: region
+    value: "us-east-1"
+
+  # Authentication (omit on EKS with IRSA/IAM roles)
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+  # Disable SSL (only for local dev with MinIO)
+  # - name: disableSSL
+  #   value: "false"
+
+  # Force path-style URLs (for S3-compatible services)
+  # - name: forcePathStyle
+  #   value: "true"
+
+  # Custom endpoint (MinIO, LocalStack, etc.)
+  # - name: endpoint
+  #   value: "http://localhost:9000"
+
+  # File decoding for input binding
+  # - name: decodeBase64
+  #   value: "false"
+
+# Operations:
+#
+# CREATE (upload file):
+# curl -X POST http://localhost:3500/v1.0/bindings/s3-storage \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "operation": "create",
+#     "data": "base64-encoded-content",
+#     "metadata": {
+#       "key": "path/to/file.txt",
+#       "contentType": "text/plain"
+#     }
+#   }'
+#
+# GET (download file):
+# curl -X POST http://localhost:3500/v1.0/bindings/s3-storage \
+#   -d '{"operation": "get", "metadata": {"key": "path/to/file.txt"}}'
+#
+# DELETE:
+# curl -X POST http://localhost:3500/v1.0/bindings/s3-storage \
+#   -d '{"operation": "delete", "metadata": {"key": "path/to/file.txt"}}'
+#
+# LIST:
+# curl -X POST http://localhost:3500/v1.0/bindings/s3-storage \
+#   -d '{"operation": "list", "metadata": {"prefix": "path/"}}'
+
+# IAM Policy:
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [{
+#     "Effect": "Allow",
+#     "Action": [
+#       "s3:GetObject",
+#       "s3:PutObject",
+#       "s3:DeleteObject",
+#       "s3:ListBucket"
+#     ],
+#     "Resource": [
+#       "arn:aws:s3:::my-app-bucket",
+#       "arn:aws:s3:::my-app-bucket/*"
+#     ]
+#   }]
+# }
+
+---
+# MinIO (S3-compatible) for local development
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: s3-local
+  namespace: default
+spec:
+  type: bindings.aws.s3
+  version: v1
+  metadata:
+  - name: bucket
+    value: "test-bucket"
+  - name: endpoint
+    value: "http://localhost:9000"
+  - name: accessKey
+    value: "minioadmin"
+  - name: secretKey
+    value: "minioadmin"
+  - name: forcePathStyle
+    value: "true"
+  - name: disableSSL
+    value: "true"
+  - name: region
+    value: "us-east-1"
+
+# Run MinIO locally:
+# docker run -p 9000:9000 -p 9001:9001 \
+#   -e MINIO_ROOT_USER=minioadmin \
+#   -e MINIO_ROOT_PASSWORD=minioadmin \
+#   minio/minio server /data --console-address ":9001"

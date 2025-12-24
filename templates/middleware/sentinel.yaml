@@ -1,0 +1,106 @@
+# Sentinel Fault-Tolerance Middleware
+# Advanced traffic control, circuit breaking, and system protection
+# Uses Alibaba Sentinel - https://github.com/alibaba/sentinel-golang
+#
+# Usage: Apply to httpPipeline for comprehensive fault tolerance
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: sentinel
+  namespace: default
+spec:
+  type: middleware.http.sentinel
+  version: v1
+  metadata:
+  # Application name for Sentinel metrics
+  - name: appName
+    value: "my-service"
+
+  # Log directory for Sentinel metrics
+  - name: logDir
+    value: "/var/log/sentinel"
+
+  # Flow Control Rules - limit requests per second
+  - name: flowRules
+    value: |
+      [
+        {
+          "resource": "POST:/v1.0/invoke/my-service/method/api/orders",
+          "threshold": 100,
+          "tokenCalculateStrategy": 0,
+          "controlBehavior": 0
+        },
+        {
+          "resource": "GET:/v1.0/invoke/my-service/method/api/products",
+          "threshold": 500,
+          "tokenCalculateStrategy": 0,
+          "controlBehavior": 0
+        }
+      ]
+
+  # Circuit Breaker Rules - stop calls to failing services
+  - name: circuitBreakerRules
+    value: |
+      [
+        {
+          "resource": "POST:/v1.0/invoke/payment-service/method/charge",
+          "strategy": 0,
+          "retryTimeoutMs": 30000,
+          "minRequestAmount": 10,
+          "statIntervalMs": 10000,
+          "threshold": 0.5
+        }
+      ]
+
+  # Hot Spot Parameter Rules - limit by specific parameter values
+  # - name: hotSpotParamRules
+  #   value: |
+  #     [
+  #       {
+  #         "resource": "GET:/v1.0/invoke/my-service/method/api/user/{id}",
+  #         "metricType": 0,
+  #         "paramIndex": 0,
+  #         "threshold": 10,
+  #         "durationInSec": 1
+  #       }
+  #     ]
+
+  # Isolation Rules - concurrency limiting
+  # - name: isolationRules
+  #   value: |
+  #     [
+  #       {
+  #         "resource": "POST:/v1.0/invoke/my-service/method/api/heavy",
+  #         "threshold": 50
+  #       }
+  #     ]
+
+  # System Rules - protect system based on load/CPU
+  # - name: systemRules
+  #   value: |
+  #     [
+  #       {
+  #         "metricType": 0,
+  #         "adaptiveStrategy": 0,
+  #         "triggerCount": 0.8
+  #       }
+  #     ]
+
+# Resource format: METHOD:/v1.0/invoke/{app-id}/method/{endpoint}
+#
+# tokenCalculateStrategy:
+#   0 = Direct (fixed threshold)
+#   1 = WarmUp (gradually increase threshold)
+#   2 = MemoryAdaptive (adjust based on memory)
+#
+# controlBehavior:
+#   0 = Reject (immediately reject excess)
+#   1 = Throttling (queue and wait)
+#
+# circuitBreaker strategy:
+#   0 = SlowRequestRatio
+#   1 = ErrorRatio
+#   2 = ErrorCount
+#
+# Returns HTTP 429 when limits exceeded

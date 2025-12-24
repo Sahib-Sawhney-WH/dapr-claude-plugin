@@ -1,0 +1,133 @@
+# GCP Cloud Run with DAPR
+# Serverless container deployment
+#
+# Note: Cloud Run has limited DAPR support via Cloud Run Jobs
+# For full DAPR support, use GKE
+#
+# This template shows Cloud Run service with DAPR-like patterns
+
+---
+# Cloud Run Service Definition (gcloud format)
+# Save as service.yaml and deploy with:
+# gcloud run services replace service.yaml
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: my-service
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Autoscaling
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+
+        # Startup CPU boost
+        run.googleapis.com/startup-cpu-boost: "true"
+
+        # VPC connector for internal services
+        # run.googleapis.com/vpc-access-connector: projects/PROJECT/locations/REGION/connectors/CONNECTOR
+        # run.googleapis.com/vpc-access-egress: all-traffic
+    spec:
+      # Service account for GCP access
+      serviceAccountName: my-service@PROJECT_ID.iam.gserviceaccount.com
+
+      containerConcurrency: 80
+      timeoutSeconds: 300
+
+      containers:
+      - image: gcr.io/PROJECT_ID/my-service:latest
+        ports:
+        - containerPort: 8000
+
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+
+        env:
+        - name: PROJECT_ID
+          value: "PROJECT_ID"
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "PROJECT_ID"
+
+        # Use GCP native services instead of DAPR
+        # State: Firestore
+        # PubSub: Cloud Pub/Sub
+        # Secrets: Secret Manager
+
+        # Health checks
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 0
+          timeoutSeconds: 3
+          periodSeconds: 3
+          failureThreshold: 10
+
+---
+# Alternative: Cloud Run Jobs for batch processing with DAPR
+# Cloud Run Jobs support sidecar containers (Preview)
+
+# apiVersion: run.googleapis.com/v1
+# kind: Job
+# metadata:
+#   name: my-batch-job
+# spec:
+#   template:
+#     spec:
+#       template:
+#         spec:
+#           containers:
+#           - name: my-job
+#             image: gcr.io/PROJECT_ID/my-job:latest
+#           - name: dapr
+#             image: daprio/daprd:latest
+#             args:
+#             - "./daprd"
+#             - "--app-id=my-job"
+#             - "--app-port=8000"
+
+# Cloud Run Deployment Commands:
+#
+# 1. Build and push image:
+# gcloud builds submit --tag gcr.io/PROJECT_ID/my-service
+#
+# 2. Deploy service:
+# gcloud run deploy my-service \
+#   --image gcr.io/PROJECT_ID/my-service \
+#   --platform managed \
+#   --region us-central1 \
+#   --allow-unauthenticated \
+#   --service-account my-service@PROJECT_ID.iam.gserviceaccount.com
+#
+# 3. For internal only:
+# gcloud run deploy my-service \
+#   --image gcr.io/PROJECT_ID/my-service \
+#   --platform managed \
+#   --region us-central1 \
+#   --no-allow-unauthenticated \
+#   --ingress internal
+
+# Cloud Run DAPR Alternatives:
+#
+# Instead of DAPR components, use GCP SDKs directly:
+#
+# State Management:
+#   from google.cloud import firestore
+#   db = firestore.Client()
+#   db.collection('state').document(key).set(value)
+#
+# Pub/Sub:
+#   from google.cloud import pubsub_v1
+#   publisher = pubsub_v1.PublisherClient()
+#   publisher.publish(topic_path, data.encode())
+#
+# Secrets:
+#   from google.cloud import secretmanager
+#   client = secretmanager.SecretManagerServiceClient()
+#   response = client.access_secret_version(name=secret_path)

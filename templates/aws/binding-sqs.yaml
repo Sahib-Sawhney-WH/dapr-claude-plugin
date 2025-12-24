@@ -1,0 +1,107 @@
+# AWS SQS Binding
+# Managed message queue for decoupled communication
+#
+# Use as input binding (receive) or output binding (send)
+# For pub/sub pattern, use pubsub.aws.snssqs instead
+#
+# Authentication: IAM credentials, EKS IRSA, or environment variables
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: sqs-queue
+  namespace: default
+spec:
+  type: bindings.aws.sqs
+  version: v1
+  metadata:
+  # Required: SQS queue URL or name
+  - name: queueName
+    value: "my-app-queue"
+
+  # AWS Region
+  - name: region
+    value: "us-east-1"
+
+  # Authentication (omit on EKS with IRSA/IAM roles)
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+  # Message visibility timeout (seconds)
+  - name: visibilityTimeout
+    value: "30"
+
+  # Long polling wait time (seconds, max 20)
+  - name: waitTimeSeconds
+    value: "5"
+
+  # Max messages per receive (1-10)
+  - name: maxNumberOfMessages
+    value: "10"
+
+  # Local development with LocalStack
+  # - name: endpoint
+  #   value: "http://localhost:4566"
+
+# Input binding: Messages are delivered to /sqs-queue endpoint
+# Output binding: Send messages via invoke
+
+# Send message:
+# curl -X POST http://localhost:3500/v1.0/bindings/sqs-queue \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "data": {"orderId": "12345"},
+#     "metadata": {
+#       "messageDeduplicationId": "unique-id",
+#       "messageGroupId": "group-1"
+#     }
+#   }'
+
+# IAM Policy:
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [{
+#     "Effect": "Allow",
+#     "Action": [
+#       "sqs:SendMessage",
+#       "sqs:ReceiveMessage",
+#       "sqs:DeleteMessage",
+#       "sqs:GetQueueUrl",
+#       "sqs:GetQueueAttributes"
+#     ],
+#     "Resource": "arn:aws:sqs:*:*:my-app-queue"
+#   }]
+# }
+
+---
+# AWS SNS Binding (for notifications/fan-out)
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: sns-notify
+  namespace: default
+spec:
+  type: bindings.aws.sns
+  version: v1
+  metadata:
+  - name: topicArn
+    value: "arn:aws:sns:us-east-1:123456789:my-topic"
+  - name: region
+    value: "us-east-1"
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+# SNS is output-only (publish to topic)
+# Subscribers receive via email, SMS, HTTP, Lambda, or SQS

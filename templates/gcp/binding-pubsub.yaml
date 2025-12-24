@@ -1,0 +1,97 @@
+# GCP Pub/Sub Binding
+# Use for direct queue operations (input/output binding)
+# For pub/sub messaging pattern, use pubsub.gcp.pubsub component instead
+#
+# Authentication: Workload Identity, Service Account, or ADC
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: gcp-queue
+  namespace: default
+spec:
+  type: bindings.gcp.pubsub
+  version: v1
+  metadata:
+  # Required: GCP Project ID
+  - name: project_id
+    value: "my-gcp-project"
+
+  # Required: Topic name
+  - name: topic
+    value: "my-topic"
+
+  # Required for input binding: Subscription name
+  - name: subscription
+    value: "my-subscription"
+
+  # Authentication type
+  - name: type
+    value: "service_account"
+
+  # Service Account credentials (alternative to Workload Identity)
+  - name: private_key_id
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key-id
+  - name: private_key
+    secretKeyRef:
+      name: gcp-credentials
+      key: private-key
+  - name: client_email
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-email
+  - name: client_id
+    secretKeyRef:
+      name: gcp-credentials
+      key: client-id
+  - name: auth_uri
+    value: "https://accounts.google.com/o/oauth2/auth"
+  - name: token_uri
+    value: "https://oauth2.googleapis.com/token"
+  - name: auth_provider_x509_cert_url
+    value: "https://www.googleapis.com/oauth2/v1/certs"
+
+# GKE with Workload Identity (recommended):
+# apiVersion: dapr.io/v1alpha1
+# kind: Component
+# metadata:
+#   name: gcp-queue
+# spec:
+#   type: bindings.gcp.pubsub
+#   version: v1
+#   metadata:
+#   - name: project_id
+#     value: "my-gcp-project"
+#   - name: topic
+#     value: "my-topic"
+#   - name: subscription
+#     value: "my-subscription"
+#   - name: type
+#     value: "service_account"
+
+# Input binding: Messages delivered to /gcp-queue endpoint
+# Output binding: Publish messages to topic
+
+# Publish message:
+# curl -X POST http://localhost:3500/v1.0/bindings/gcp-queue \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "data": {"orderId": "12345", "status": "completed"},
+#     "metadata": {
+#       "attributes": "{\"priority\": \"high\"}"
+#     }
+#   }'
+
+# IAM Roles needed:
+# - roles/pubsub.publisher (publish to topic)
+# - roles/pubsub.subscriber (receive from subscription)
+
+# Create topic and subscription:
+# gcloud pubsub topics create my-topic
+# gcloud pubsub subscriptions create my-subscription --topic=my-topic
+
+# When to use binding vs pubsub component:
+# - Use pubsub.gcp.pubsub for publish/subscribe messaging patterns
+# - Use bindings.gcp.pubsub for direct queue operations or input triggers

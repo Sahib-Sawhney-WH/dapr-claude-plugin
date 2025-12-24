@@ -1,0 +1,80 @@
+# AWS DynamoDB State Store
+# Serverless key-value and document database
+#
+# Prerequisites:
+#   - DynamoDB table with primary key named "key" (or custom partitionKey)
+#   - IAM role/user with dynamodb:* permissions
+#
+# Authentication: IAM credentials, EKS IRSA, or environment variables
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+  namespace: default
+spec:
+  type: state.aws.dynamodb
+  version: v1
+  metadata:
+  # Required: DynamoDB table name
+  - name: table
+    value: "dapr-state"
+
+  # AWS Region
+  - name: region
+    value: "us-east-1"
+
+  # Authentication (omit on EKS with IRSA/IAM roles)
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+  # Optional: Custom partition key (default: "key")
+  # - name: partitionKey
+  #   value: "pk"
+
+  # TTL Configuration
+  # - name: ttlAttributeName
+  #   value: "expiresAt"
+  # - name: ttlInSeconds
+  #   value: "3600"
+
+  # Actor support
+  # - name: actorStateStore
+  #   value: "true"
+
+  # Local development with LocalStack
+  # - name: endpoint
+  #   value: "http://localhost:4566"
+
+# DynamoDB Table Creation (AWS CLI):
+# aws dynamodb create-table \
+#   --table-name dapr-state \
+#   --attribute-definitions AttributeName=key,AttributeType=S \
+#   --key-schema AttributeName=key,KeyType=HASH \
+#   --billing-mode PAY_PER_REQUEST
+
+# IAM Policy (minimum permissions):
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [{
+#     "Effect": "Allow",
+#     "Action": [
+#       "dynamodb:GetItem",
+#       "dynamodb:PutItem",
+#       "dynamodb:DeleteItem",
+#       "dynamodb:BatchGetItem",
+#       "dynamodb:BatchWriteItem",
+#       "dynamodb:Query"
+#     ],
+#     "Resource": "arn:aws:dynamodb:*:*:table/dapr-state"
+#   }]
+# }
+
+# EKS with IRSA: Omit accessKey/secretKey and use service account annotations
+# See: https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html

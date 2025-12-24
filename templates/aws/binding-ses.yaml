@@ -1,0 +1,90 @@
+# AWS SES Binding
+# Simple Email Service for transactional emails
+#
+# Operations: create (send email)
+# Requires verified sender email/domain in SES
+#
+# Authentication: IAM credentials, EKS IRSA, or environment variables
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: email
+  namespace: default
+spec:
+  type: bindings.aws.ses
+  version: v1
+  metadata:
+  # AWS Region (use region where SES is configured)
+  - name: region
+    value: "us-east-1"
+
+  # Verified sender email address
+  - name: emailFrom
+    value: "noreply@example.com"
+
+  # Optional: Verified sender display name
+  - name: emailFromName
+    value: "My Application"
+
+  # Authentication (omit on EKS with IRSA/IAM roles)
+  - name: accessKey
+    secretKeyRef:
+      name: aws-credentials
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: aws-credentials
+      key: secret-key
+
+# Send email:
+# curl -X POST http://localhost:3500/v1.0/bindings/email \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "operation": "create",
+#     "metadata": {
+#       "emailTo": "user@example.com",
+#       "emailCc": "cc@example.com",
+#       "emailBcc": "bcc@example.com",
+#       "subject": "Order Confirmation"
+#     },
+#     "data": "<html><body><h1>Thank you for your order!</h1></body></html>"
+#   }'
+
+# Plain text email:
+# curl -X POST http://localhost:3500/v1.0/bindings/email \
+#   -d '{
+#     "operation": "create",
+#     "metadata": {
+#       "emailTo": "user@example.com",
+#       "subject": "Password Reset"
+#     },
+#     "data": "Click here to reset: https://example.com/reset?token=xxx"
+#   }'
+
+# Multiple recipients (comma-separated):
+# "emailTo": "user1@example.com,user2@example.com"
+
+# IAM Policy:
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [{
+#     "Effect": "Allow",
+#     "Action": [
+#       "ses:SendEmail",
+#       "ses:SendRawEmail"
+#     ],
+#     "Resource": "*",
+#     "Condition": {
+#       "StringEquals": {
+#         "ses:FromAddress": "noreply@example.com"
+#       }
+#     }
+#   }]
+# }
+
+# SES Setup:
+# 1. Verify sender email: aws ses verify-email-identity --email noreply@example.com
+# 2. Or verify domain: aws ses verify-domain-identity --domain example.com
+# 3. In sandbox mode, also verify recipient emails
+# 4. Request production access to send to any recipient

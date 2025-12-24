@@ -1,0 +1,76 @@
+# WebAssembly (Wasm) Middleware
+# Extend Dapr with custom logic compiled to WebAssembly
+# Uses http-wasm ABI - https://http-wasm.io/http-handler/
+#
+# Usage: Apply to httpPipeline for custom request/response handling
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: wasm-handler
+  namespace: default
+spec:
+  type: middleware.http.wasm
+  version: v1
+  metadata:
+  # URL to the Wasm binary
+  # Supported schemes: file://, http://, https://
+  - name: url
+    value: "file://handlers/router.wasm"
+
+  # Optional configuration passed to Wasm guest
+  - name: guestConfig
+    value: '{"environment":"production","debug":false}'
+
+# Kubernetes volume mount example:
+# Mount Wasm files to /wasm in the sidecar, then use:
+#   value: "file:///wasm/router.wasm"
+#
+# See: https://docs.dapr.io/operations/configuration/kubernetes-volume-mounts/
+
+---
+# Example: Remote Wasm binary
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: wasm-remote
+  namespace: default
+spec:
+  type: middleware.http.wasm
+  version: v1
+  metadata:
+  - name: url
+    value: "https://example.com/middleware/auth-check.wasm"
+
+# Building Wasm middleware with TinyGo:
+#
+# 1. Install TinyGo: https://tinygo.org/getting-started/install/
+#
+# 2. Create handler (main.go):
+#    package main
+#
+#    import (
+#        "strings"
+#        "github.com/http-wasm/http-wasm-guest-tinygo/handler"
+#        "github.com/http-wasm/http-wasm-guest-tinygo/handler/api"
+#    )
+#
+#    func main() {
+#        handler.HandleRequestFn = handleRequest
+#    }
+#
+#    func handleRequest(req api.Request, resp api.Response) (next bool, reqCtx uint32) {
+#        // Check auth header
+#        if req.Headers().Get("Authorization") == "" {
+#            resp.SetStatusCode(401)
+#            resp.Body().WriteString("Unauthorized")
+#            return false, 0  // Stop processing
+#        }
+#        return true, 0  // Continue to next handler
+#    }
+#
+# 3. Compile:
+#    tinygo build -o handler.wasm -scheduler=none -target=wasi main.go
+#
+# Performance note: Wasm middleware uses more resources than native.
+# Consider setting app-max-concurrency in production.

@@ -1,0 +1,146 @@
+# AWS EKS Deployment with DAPR
+# Amazon Elastic Kubernetes Service configuration
+#
+# Prerequisites:
+#   - EKS cluster with DAPR installed
+#   - IAM roles for service accounts (IRSA)
+#   - kubectl configured for cluster
+
+---
+# Kubernetes Deployment with DAPR sidecar
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-service
+  namespace: default
+  labels:
+    app: my-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-service
+  template:
+    metadata:
+      labels:
+        app: my-service
+      annotations:
+        # DAPR sidecar injection
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "my-service"
+        dapr.io/app-port: "8000"
+        dapr.io/app-protocol: "http"
+
+        # Sidecar configuration
+        dapr.io/config: "appconfig"
+        dapr.io/log-level: "info"
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: "9090"
+
+        # Resource limits for sidecar
+        dapr.io/sidecar-cpu-request: "100m"
+        dapr.io/sidecar-cpu-limit: "500m"
+        dapr.io/sidecar-memory-request: "128Mi"
+        dapr.io/sidecar-memory-limit: "512Mi"
+    spec:
+      # Use IRSA for AWS authentication
+      serviceAccountName: my-service-sa
+      containers:
+      - name: my-service
+        image: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/my-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DAPR_HTTP_PORT
+          value: "3500"
+        - name: DAPR_GRPC_PORT
+          value: "50001"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# Service Account with IRSA
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-service-sa
+  namespace: default
+  annotations:
+    # Link to IAM role for AWS service access
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/my-service-role
+
+---
+# Service for internal communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  namespace: default
+spec:
+  selector:
+    app: my-service
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP
+
+---
+# DAPR Configuration
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: appconfig
+  namespace: default
+spec:
+  tracing:
+    samplingRate: "1"
+    otel:
+      endpointAddress: "http://otel-collector.observability:4317"
+      isSecure: false
+      protocol: grpc
+  metrics:
+    enabled: true
+  logging:
+    apiLogging:
+      enabled: true
+
+# EKS Setup Commands:
+#
+# 1. Create EKS cluster:
+# eksctl create cluster --name my-cluster --region us-east-1 --nodegroup-name workers --nodes 3
+#
+# 2. Install DAPR:
+# dapr init -k
+#
+# 3. Create IRSA:
+# eksctl create iamserviceaccount \
+#   --name my-service-sa \
+#   --namespace default \
+#   --cluster my-cluster \
+#   --attach-policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess \
+#   --attach-policy-arn arn:aws:iam::aws:policy/AmazonSQSFullAccess \
+#   --approve
+#
+# 4. Deploy application:
+# kubectl apply -f deploy-eks.yaml
+#
+# 5. Verify DAPR sidecar:
+# kubectl get pods -l app=my-service
+# kubectl logs my-service-xxx -c daprd

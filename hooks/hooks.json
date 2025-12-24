@@ -14,6 +14,17 @@
       },
       {
         "matcher": "Write|Edit",
+        "glob": "**/middleware/*.yaml",
+        "hooks": [
+          {
+            "type": "prompt",
+            "description": "Validate DAPR middleware configuration",
+            "prompt": "A DAPR middleware file was modified at $FILE. SECURITY VALIDATION: (1) For OAuth2/OAuth2CC: clientId and clientSecret must use secretKeyRef (not plain values), authURL and tokenURL must use HTTPS, (2) For Bearer: issuer must use HTTPS, audience must be specified, (3) For OPA: policy must have 'default allow = false', (4) For RateLimit: maxRequestsPerSecond must be reasonable, (5) For Sentinel: appName and at least one rule type required. Report any security issues or misconfigurations."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
         "glob": "**/dapr.yaml",
         "hooks": [
           {
