@@ -4,12 +4,40 @@ Thank you for your interest in contributing to the DAPR Plugin! This document pr
 
 ## Getting Started
 
-1. Fork the repository
-2. Clone your fork locally
-3. Create a new branch for your feature or fix
+### Prerequisites
+
+- [Claude Code CLI](https://claude.ai/code) installed
+- Git
+- Python 3.9+ (for running tests)
+- pytest (`pip install pytest`)
+
+### Setup for Development
+
+1. Fork the repository on GitHub
+2. Clone your fork locally:
+
+```bash
+git clone https://github.com/YOUR-USERNAME/dapr-claude-plugin.git
+cd dapr-claude-plugin
+```
+
+3. Install the plugin locally for testing:
+
+```bash
+claude plugin install .
+```
+
+4. Create a new branch for your feature or fix:
 
 ```bash
 git checkout -b feature/your-feature-name
+```
+
+5. After making changes, reinstall to test:
+
+```bash
+claude plugin uninstall dapr
+claude plugin install .
 ```
 
 ## Project Structure

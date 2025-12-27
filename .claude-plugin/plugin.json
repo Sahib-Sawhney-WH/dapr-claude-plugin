@@ -5,6 +5,11 @@
   "author": {
     "name": "sahib"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sahib-Sawhney-WH/dapr-claude-plugin.git"
+  },
+  "homepage": "https://github.com/Sahib-Sawhney-WH/dapr-claude-plugin",
   "keywords": [
     "dapr",
     "microservices",

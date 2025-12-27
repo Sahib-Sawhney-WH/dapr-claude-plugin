@@ -122,12 +122,37 @@ Build custom DAPR components using gRPC:
 
 ## Installation
 
-```bash
-# Install from GitHub
-claude plugin install github:Sahib-Sawhney-WH/dapr-claude-plugin
+### Option 1: Clone and Install (Recommended)
 
-# Or from local path
-claude --plugin-dir /path/to/dapr-plugin
+```bash
+# Clone the repository
+git clone https://github.com/Sahib-Sawhney-WH/dapr-claude-plugin.git
+
+# Install from local path
+claude plugin install ./dapr-claude-plugin
+```
+
+### Option 2: One-Line Install
+
+```bash
+# Clone and install in one command
+git clone https://github.com/Sahib-Sawhney-WH/dapr-claude-plugin.git && claude plugin install ./dapr-claude-plugin
+```
+
+### Option 3: Use Plugin Directory Flag
+
+```bash
+# Run Claude Code with the plugin directory
+claude --plugin-dir /path/to/dapr-claude-plugin
+```
+
+### Verify Installation
+
+```bash
+# List installed plugins
+claude plugin list
+
+# You should see "dapr" in the list
 ```
 
 ## Commands
