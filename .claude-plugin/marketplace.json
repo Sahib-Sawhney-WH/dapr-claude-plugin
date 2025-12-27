@@ -1,0 +1,13 @@
+{
+  "name": "dapr-marketplace",
+  "owner": {
+    "name": "Sahib-Sawhney-WH"
+  },
+  "description": "DAPR Plugin Marketplace - Comprehensive DAPR development tools for Claude Code",
+  "plugins": [
+    {
+      "name": "dapr",
+      "source": "./"
+    }
+  ]
+}
